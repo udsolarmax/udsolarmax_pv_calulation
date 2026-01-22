@@ -21,50 +21,64 @@ export default function App() {
     panelTotalDim: 0
   });
 
-  const currentW = panelOrientation === 'vertical' ? panelWidth : panelLength;
-  const currentL = panelOrientation === 'vertical' ? panelLength : panelWidth;
+  // --- วิศวกรรม Logic: กำหนดขนาดตามแนวรางจริง ---
+  // แนวตั้ง (Portrait): รางวิ่งตามความกว้างแผง | แนวนอน (Landscape): รางวิ่งตามความยาวแผง
+  const dimAlongRail = panelOrientation === 'vertical' ? panelWidth : panelLength;
+  const dimAcrossRail = panelOrientation === 'vertical' ? panelLength : panelWidth;
 
   useEffect(() => {
-    const panelsDim = (panelCountPerString * currentW) + ((panelCountPerString - 1) * midClampSpace);
-    const rowLenMM = panelsDim + (2 * overhang);
-    const midPerString = (panelCountPerString - 1) * 2;
+    // คำนวณความยาวแผงรวมทั้งหมดใน 1 แถว
+    const panelsTotalMM = (panelCountPerString * dimAlongRail) + ((panelCountPerString - 1) * midClampSpace);
+    // ความยาวรางจริง (ต่อเส้น) = ความยาวแผงรวม + overhang สองด้าน
+    const rowLenMM = panelsTotalMM + (2 * overhang);
+    
+    // คำนวณวัสดุต่อ 1 สตริง
     const railsPerSide = Math.ceil(rowLenMM / railLength);
-    const railsPerString = railsPerSide * 2;
+    const railsPerString = railsPerSide * 2; // มีราง 2 เส้นเสมอ
     const splicesPerString = Math.max(0, (railsPerSide - 1) * 2); 
     const lFeetPerString = (Math.ceil(rowLenMM / lFeetSpace) + 1) * 2;
 
     setResults({
       totalRailLength: (rowLenMM / 1000).toFixed(2),
       totalRailsNeeded: railsPerString * stringCount,
-      midClamps: midPerString * stringCount,
+      midClamps: (panelCountPerString - 1) * 2 * stringCount,
       endClamps: 4 * stringCount,
       splices: splicesPerString * stringCount,
       lFeetCount: lFeetPerString * stringCount,
-      panelTotalDim: (panelsDim / 1000).toFixed(2)
+      panelTotalDim: (panelsTotalMM / 1000).toFixed(2)
     });
-  }, [currentW, currentL, panelCountPerString, stringCount, lFeetSpace, railLength, midClampSpace, overhang, panelOrientation]);
+  }, [dimAlongRail, panelCountPerString, stringCount, lFeetSpace, railLength, midClampSpace, overhang]);
 
   const renderVisualizer = () => {
-    // คำนวณความยาวแผงทั้งหมดรวมช่องว่าง
-    const panelsDimMM = (panelCountPerString * currentW) + ((panelCountPerString - 1) * midClampSpace);
-    // ความยาวรางจริง = ความยาวแผงรวม + overhang สองด้าน
-    const actualRailLenMM = panelsDimMM + (2 * overhang);
+    const panelsTotalMM = (panelCountPerString * dimAlongRail) + ((panelCountPerString - 1) * midClampSpace);
+    const railLenMM = panelsTotalMM + (2 * overhang);
 
     if (panelOrientation === 'vertical') {
-      const totalW = actualRailLenMM + 400;
-      const totalH = (currentL * stringCount) + (stringCount * 500);
+      // --- แนวตั้ง (Portrait): ต่อลงด้านล่าง ---
+      const viewW = railLenMM + 400;
+      const viewH = (dimAcrossRail * stringCount) + (stringCount * 400);
 
       return (
-        <svg viewBox={`-200 -200 ${totalW} ${totalH}`} style={{ width: '100%', maxHeight: '70vh', background: '#0f172a', borderRadius: '12px' }}>
+        <svg viewBox={`-200 -200 ${viewW} ${viewH}`} style={{ width: '100%', maxHeight: '65vh', background: '#0f172a', borderRadius: '12px' }}>
           {Array.from({ length: stringCount }).map((_, sIdx) => {
-            const yOff = sIdx * (currentL + 400);
+            const yOff = sIdx * (dimAcrossRail + 400);
             return (
               <g key={sIdx}>
-                {/* รางแนวนอนสำหรับแนวตั้ง */}
-                <rect x="0" y={yOff + currentL * 0.25} width={actualRailLenMM} height="30" fill="#64748b" rx="5" />
-                <rect x="0" y={yOff + currentL * 0.75} width={actualRailLenMM} height="30" fill="#64748b" rx="5" />
+                {/* รางหยุดที่ความยาว railLenMM พอดี */}
+                <rect x="0" y={yOff + dimAcrossRail * 0.25} width={railLenMM} height="30" fill="#64748b" rx="5" />
+                <rect x="0" y={yOff + dimAcrossRail * 0.75} width={railLenMM} height="30" fill="#64748b" rx="5" />
                 {Array.from({ length: panelCountPerString }).map((_, pIdx) => (
-                  <rect key={pIdx} x={overhang + (pIdx * (currentW + midClampSpace))} y={yOff} width={currentW} height={currentL} fill="#1e293b" stroke="#38bdf8" strokeWidth="10" rx="5" />
+                  <rect 
+                    key={pIdx} 
+                    x={overhang + (pIdx * (dimAlongRail + midClampSpace))} 
+                    y={yOff} 
+                    width={dimAlongRail} 
+                    height={dimAcrossRail} 
+                    fill="#1e293b" 
+                    stroke="#38bdf8" 
+                    strokeWidth="8" 
+                    rx="5" 
+                  />
                 ))}
               </g>
             );
@@ -72,32 +86,31 @@ export default function App() {
         </svg>
       );
     } else {
-      // --- แก้ไขโหมดแนวนอน (Landscape) ---
-      const stringGap = currentW * 0.4; 
-      const totalW = (currentW * stringCount) + ((stringCount - 1) * stringGap);
-      // ความสูง SVG จะเท่ากับความยาวรางจริง
-      const totalH = actualRailLenMM;
+      // --- แนวนอน (Landscape): ต่อไปด้านขวา (อ้างอิงตามรูปตัวอย่าง) ---
+      const stringGap = dimAlongRail * 0.2; 
+      const viewW = (dimAlongRail * stringCount) + ((stringCount - 1) * stringGap) + 400;
+      const viewH = railLenMM + 400;
 
       return (
-        <svg viewBox={`-100 -100 ${totalW + 200} ${totalH + 200}`} style={{ width: '100%', maxHeight: '70vh', background: '#0f172a', borderRadius: '12px' }}>
+        <svg viewBox={`-200 -200 ${viewW} ${viewH}`} style={{ width: '100%', maxHeight: '65vh', background: '#0f172a', borderRadius: '12px' }}>
           {Array.from({ length: stringCount }).map((_, sIdx) => {
-            const xOff = sIdx * (currentW + stringGap);
+            const xOff = sIdx * (dimAlongRail + stringGap);
             return (
               <g key={sIdx}>
-                {/* รางวาดให้ยาวเท่ากับ actualRailLenMM พอดี (ไม่ยาวเกินไปด้านล่าง) */}
-                <rect x={xOff + currentW * 0.2} y="0" width="40" height={actualRailLenMM} fill="#64748b" rx="10" />
-                <rect x={xOff + currentW * 0.8} y="0" width="40" height={actualRailLenMM} fill="#64748b" rx="10" />
+                {/* รางแนวดิ่ง หยุดความยาวที่ railLenMM พอดี ไม่เกิน overhang */}
+                <rect x={xOff + dimAlongRail * 0.2} y="0" width="35" height={railLenMM} fill="#64748b" rx="10" />
+                <rect x={xOff + dimAlongRail * 0.8} y="0" width="35" height={railLenMM} fill="#64748b" rx="10" />
                 
                 {Array.from({ length: panelCountPerString }).map((_, pIdx) => (
                   <rect 
                     key={pIdx} 
                     x={xOff} 
-                    y={overhang + (pIdx * (currentL + midClampSpace))} 
-                    width={currentW} 
-                    height={currentL} 
+                    y={overhang + (pIdx * (dimAcrossRail + midClampSpace))} 
+                    width={dimAlongRail} 
+                    height={dimAcrossRail} 
                     fill="#0ea5e9" 
                     stroke="#fff" 
-                    strokeWidth="12" 
+                    strokeWidth="10" 
                     rx="5" 
                   />
                 ))}
@@ -112,17 +125,16 @@ export default function App() {
   return (
     <div style={{ padding: "10px", maxWidth: "1200px", margin: "0 auto", fontFamily: "sans-serif", backgroundColor: "#f1f5f9", minHeight: "100vh" }}>
       <div style={{ backgroundColor: "white", borderRadius: "16px", boxShadow: "0 10px 25px rgba(0,0,0,0.1)", padding: "20px" }}>
-        <h1 style={{ color: "#1e3a8a", textAlign: "center", marginBottom: "20px", fontSize: "22px" }}>UD Solarmax engineering calc v5.5</h1>
+        <h1 style={{ color: "#1e3a8a", textAlign: "center", marginBottom: "20px", fontSize: "20px" }}>UD Solarmax engineering calc v5.7</h1>
         
-        <div style={{ marginBottom: "20px", display: 'flex', justifyContent: 'center', background: '#0f172a', padding: '10px', borderRadius: '12px', overflow: 'hidden' }}>
-          <div style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
+        <div style={{ marginBottom: "20px", display: 'flex', justifyContent: 'center', background: '#0f172a', padding: '15px', borderRadius: '12px' }}>
              {renderVisualizer()}
-          </div>
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "20px" }}>
+          {/* Settings */}
           <div style={{ background: "#ffffff", padding: "20px", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
-            <h3 style={{ marginBottom: "15px", fontSize: "16px" }}>⚙️ ตั้งค่าการติดตั้ง</h3>
+            <h3 style={{ marginBottom: "15px", fontSize: "16px", color: "#334155" }}>⚙️ ตั้งค่าการติดตั้ง</h3>
             <select value={panelOrientation} onChange={(e) => setPanelOrientation(e.target.value)} style={{ width: "100%", padding: "10px", marginBottom: "15px", borderRadius: "8px", border: "1px solid #cbd5e1" }}>
               <option value="horizontal">แนวนอน (Landscape)</option>
               <option value="vertical">แนวตั้ง (Portrait)</option>
@@ -133,12 +145,13 @@ export default function App() {
               <InputBlock label="แผง/สตริง" value={panelCountPerString} onChange={setPanelCountPerString} />
               <InputBlock label="จำนวนสตริง" value={stringCount} onChange={setStringCount} />
               <InputBlock label="หัว-ท้ายราง (mm)" value={overhang} onChange={setOverhang} />
-              <InputBlock label="ห่างระหว่างแผง (mm)" value={midClampSpace} onChange={setMidClampSpace} />
+              <InputBlock label="ช่องว่างแผง (mm)" value={midClampSpace} onChange={setMidClampSpace} />
               <InputBlock label="ระยะ L-Feet (mm)" value={lFeetSpace} onChange={setLFeetSpace} />
               <InputBlock label="รางมาตรฐาน (mm)" value={railLength} onChange={setRailLength} />
             </div>
           </div>
 
+          {/* Results */}
           <div style={{ background: "#1e3a8a", color: "white", padding: "25px", borderRadius: "12px" }}>
             <h3 style={{ color: "#93c5fd", marginBottom: "20px", fontSize: "16px" }}>📦 รายการวัสดุ UD Solarmax</h3>
             <ResultRow label="ความยาวราง/แถว" value={`${results.totalRailLength} ม.`} highlight />
@@ -150,7 +163,7 @@ export default function App() {
             <button onClick={() => {
               const text = `☀️ UD Solarmax: ${stringCount} สตริง, รางรวม ${results.totalRailsNeeded} เส้น, L-Feet ${results.lFeetCount} ตัว`;
               navigator.clipboard.writeText(text);
-              alert("คัดลอกข้อมูลแล้ว!");
+              alert("คัดลอกข้อมูลเรียบร้อย!");
             }} style={{ width: "100%", marginTop: "15px", padding: "12px", background: "#10b981", color: "white", border: "none", borderRadius: "8px", fontWeight: "bold", cursor: "pointer" }}>📋 คัดลอกส่ง Line</button>
           </div>
         </div>

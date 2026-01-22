@@ -45,12 +45,13 @@ export default function App() {
   }, [currentW, currentL, panelCountPerString, stringCount, lFeetSpace, railLength, midClampSpace, overhang, panelOrientation]);
 
   const renderVisualizer = () => {
+    // คำนวณความยาวแผงทั้งหมดรวมช่องว่าง
     const panelsDimMM = (panelCountPerString * currentW) + ((panelCountPerString - 1) * midClampSpace);
-    const railLenMM = panelsDimMM + (2 * overhang);
+    // ความยาวรางจริง = ความยาวแผงรวม + overhang สองด้าน
+    const actualRailLenMM = panelsDimMM + (2 * overhang);
 
     if (panelOrientation === 'vertical') {
-      // --- Portrait Mode ---
-      const totalW = railLenMM + 400;
+      const totalW = actualRailLenMM + 400;
       const totalH = (currentL * stringCount) + (stringCount * 500);
 
       return (
@@ -59,8 +60,9 @@ export default function App() {
             const yOff = sIdx * (currentL + 400);
             return (
               <g key={sIdx}>
-                <rect x="0" y={yOff + currentL * 0.25} width={railLenMM} height="30" fill="#64748b" rx="5" />
-                <rect x="0" y={yOff + currentL * 0.75} width={railLenMM} height="30" fill="#64748b" rx="5" />
+                {/* รางแนวนอนสำหรับแนวตั้ง */}
+                <rect x="0" y={yOff + currentL * 0.25} width={actualRailLenMM} height="30" fill="#64748b" rx="5" />
+                <rect x="0" y={yOff + currentL * 0.75} width={actualRailLenMM} height="30" fill="#64748b" rx="5" />
                 {Array.from({ length: panelCountPerString }).map((_, pIdx) => (
                   <rect key={pIdx} x={overhang + (pIdx * (currentW + midClampSpace))} y={yOff} width={currentW} height={currentL} fill="#1e293b" stroke="#38bdf8" strokeWidth="10" rx="5" />
                 ))}
@@ -70,10 +72,11 @@ export default function App() {
         </svg>
       );
     } else {
-      // --- Landscape Mode (ตามรูปตัวอย่าง) ---
-      const stringGap = currentW * 0.3; // ระยะห่างระหว่างสตริง
+      // --- แก้ไขโหมดแนวนอน (Landscape) ---
+      const stringGap = currentW * 0.4; 
       const totalW = (currentW * stringCount) + ((stringCount - 1) * stringGap);
-      const totalH = railLenMM;
+      // ความสูง SVG จะเท่ากับความยาวรางจริง
+      const totalH = actualRailLenMM;
 
       return (
         <svg viewBox={`-100 -100 ${totalW + 200} ${totalH + 200}`} style={{ width: '100%', maxHeight: '70vh', background: '#0f172a', borderRadius: '12px' }}>
@@ -81,9 +84,9 @@ export default function App() {
             const xOff = sIdx * (currentW + stringGap);
             return (
               <g key={sIdx}>
-                {/* ราง 2 เส้นขนานในแนวดิ่ง */}
-                <rect x={xOff + currentW * 0.2} y="0" width="40" height={railLenMM} fill="#64748b" rx="10" />
-                <rect x={xOff + currentW * 0.8} y="0" width="40" height={railLenMM} fill="#64748b" rx="10" />
+                {/* รางวาดให้ยาวเท่ากับ actualRailLenMM พอดี (ไม่ยาวเกินไปด้านล่าง) */}
+                <rect x={xOff + currentW * 0.2} y="0" width="40" height={actualRailLenMM} fill="#64748b" rx="10" />
+                <rect x={xOff + currentW * 0.8} y="0" width="40" height={actualRailLenMM} fill="#64748b" rx="10" />
                 
                 {Array.from({ length: panelCountPerString }).map((_, pIdx) => (
                   <rect 
@@ -111,7 +114,6 @@ export default function App() {
       <div style={{ backgroundColor: "white", borderRadius: "16px", boxShadow: "0 10px 25px rgba(0,0,0,0.1)", padding: "20px" }}>
         <h1 style={{ color: "#1e3a8a", textAlign: "center", marginBottom: "20px", fontSize: "22px" }}>UD Solarmax engineering calc v5.5</h1>
         
-        {/* Visualizer Container - ปรับให้ Responsive */}
         <div style={{ marginBottom: "20px", display: 'flex', justifyContent: 'center', background: '#0f172a', padding: '10px', borderRadius: '12px', overflow: 'hidden' }}>
           <div style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
              {renderVisualizer()}
@@ -119,7 +121,6 @@ export default function App() {
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "20px" }}>
-          {/* Settings */}
           <div style={{ background: "#ffffff", padding: "20px", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
             <h3 style={{ marginBottom: "15px", fontSize: "16px" }}>⚙️ ตั้งค่าการติดตั้ง</h3>
             <select value={panelOrientation} onChange={(e) => setPanelOrientation(e.target.value)} style={{ width: "100%", padding: "10px", marginBottom: "15px", borderRadius: "8px", border: "1px solid #cbd5e1" }}>
@@ -138,7 +139,6 @@ export default function App() {
             </div>
           </div>
 
-          {/* Results */}
           <div style={{ background: "#1e3a8a", color: "white", padding: "25px", borderRadius: "12px" }}>
             <h3 style={{ color: "#93c5fd", marginBottom: "20px", fontSize: "16px" }}>📦 รายการวัสดุ UD Solarmax</h3>
             <ResultRow label="ความยาวราง/แถว" value={`${results.totalRailLength} ม.`} highlight />

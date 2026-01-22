@@ -139,7 +139,7 @@ export default function App() {
               <InputBlock label="แผงยาว (mm)" value={panelLength} onChange={setPanelLength} />
               <InputBlock label="แผง/แถว" value={panelCountPerString} onChange={setPanelCountPerString} />
               <InputBlock label="จำนวนแถว (String)" value={stringCount} onChange={setStringCount} />
-              <InputBlock label="Overhang (mm)" value={overhang} onChange={setOverhang} />
+              <InputBlock label="ระยะเหลือปลายราง (mm)" value={overhang} onChange={setOverhang} />
               <InputBlock label="Mid Clamp (mm)" value={midClampSpace} onChange={setMidClampSpace} />
               <InputBlock label="ระยะ L-Feet (mm)" value={lFeetSpace} onChange={setLFeetSpace} />
               <InputBlock label="รางมาตรฐาน (mm)" value={railLength} onChange={setRailLength} />

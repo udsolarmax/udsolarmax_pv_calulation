@@ -21,7 +21,7 @@ export default function App() {
     panelTotalDim: 0
   });
 
-  // ใช้ Logic การสลับค่าตามแนววางแผง
+  // Logic การคำนวณขนาดตามการวางจริง
   const currentW = panelOrientation === 'vertical' ? panelWidth : panelLength;
   const currentL = panelOrientation === 'vertical' ? panelLength : panelWidth;
 
@@ -30,8 +30,9 @@ export default function App() {
     const rowLenMM = panelsDim + (2 * overhang);
     
     const midPerString = (panelCountPerString - 1) * 2;
-    const railsPerString = Math.ceil((rowLenMM * 2) / railLength);
-    const splicesPerString = Math.max(0, railsPerString - 2); 
+    const railsPerSide = Math.ceil(rowLenMM / railLength);
+    const railsPerString = railsPerSide * 2;
+    const splicesPerString = Math.max(0, (railsPerSide - 1) * 2); 
     const lFeetPerString = (Math.ceil(rowLenMM / lFeetSpace) + 1) * 2;
 
     setResults({
@@ -51,19 +52,19 @@ export default function App() {
 
     if (panelOrientation === 'vertical') {
       // --- แนวตั้ง (Portrait) เรียงต่อลงด้านล่าง ---
-      const vWidth = railLenMM + 400;
-      const vHeight = (currentL * stringCount) + (stringCount * 500);
+      const totalW = railLenMM + 400;
+      const totalH = (currentL * stringCount) + (stringCount * 400);
 
       return (
-        <svg viewBox={`-200 -200 ${vWidth} ${vHeight}`} style={{ width: '100%', height: 'auto', background: '#1e293b', borderRadius: '12px' }}>
+        <svg viewBox={`-200 -200 ${totalW} ${totalH}`} style={{ width: '100%', height: 'auto', background: '#1e293b', borderRadius: '12px' }}>
           {Array.from({ length: stringCount }).map((_, sIdx) => {
-            const yOff = sIdx * (currentL + 400);
+            const yOff = sIdx * (currentL + 300);
             return (
               <g key={sIdx}>
-                <rect x="0" y={yOff + currentL * 0.25} width={railLenMM} height="30" fill="#94a3b8" rx="5" />
-                <rect x="0" y={yOff + currentL * 0.75} width={railLenMM} height="30" fill="#94a3b8" rx="5" />
+                <rect x="0" y={yOff + currentL * 0.2} width={railLenMM} height="40" fill="#94a3b8" rx="10" />
+                <rect x="0" y={yOff + currentL * 0.8} width={railLenMM} height="40" fill="#94a3b8" rx="10" />
                 {Array.from({ length: panelCountPerString }).map((_, pIdx) => (
-                  <rect key={pIdx} x={overhang + (pIdx * (currentW + midClampSpace))} y={yOff} width={currentW} height={currentL} fill="#334155" stroke="#475569" strokeWidth="5" rx="5" />
+                  <rect key={pIdx} x={overhang + (pIdx * (currentW + midClampSpace))} y={yOff} width={currentW} height={currentL} fill="#334155" stroke="#475569" strokeWidth="10" rx="5" />
                 ))}
               </g>
             );
@@ -71,31 +72,31 @@ export default function App() {
         </svg>
       );
     } else {
-      // --- แนวนอน (Landscape) แก้ไขให้เรียงไปทางขวา ---
-      const vWidth = (railLenMM * stringCount) + (stringCount * 400);
-      const vHeight = currentL + 400;
+      // --- แนวนอน (Landscape) แก้ไขใหม่: เรียงแผงตามแนวยาว และ String เรียงไปทางขวา ---
+      const stringGap = 500; // ระยะห่างระหว่างแถวไปทางขวา
+      const totalW = (currentL * stringCount) + (stringCount * stringGap);
+      const totalH = railLenMM + 400;
 
       return (
-        <svg viewBox={`-200 -200 ${vWidth} ${vHeight}`} style={{ width: '100%', height: 'auto', background: '#1e293b', borderRadius: '12px' }}>
+        <svg viewBox={`-200 -200 ${totalW} ${totalH}`} style={{ width: '100%', height: 'auto', background: '#1e293b', borderRadius: '12px' }}>
           {Array.from({ length: stringCount }).map((_, sIdx) => {
-            const xOff = sIdx * (railLenMM + 300); // ระยะห่างระหว่าง String ไปทางขวา
+            const xOff = sIdx * (currentL + stringGap);
             return (
               <g key={sIdx}>
-                {/* รางแนวนอน 2 เส้น */}
-                <rect x={xOff} y={currentL * 0.2} width={railLenMM} height="30" fill="#94a3b8" rx="5" />
-                <rect x={xOff} y={currentL * 0.8} width={railLenMM} height="30" fill="#94a3b8" rx="5" />
+                {/* รางแนวดิ่ง 2 เส้นสำหรับยึดแผงแนวนอน */}
+                <rect x={xOff + currentL * 0.2} y="0" width="40" height={railLenMM} fill="#94a3b8" rx="10" />
+                <rect x={xOff + currentL * 0.8} y="0" width="40" height={railLenMM} fill="#94a3b8" rx="10" />
                 
-                {/* วาดแผงเรียงตามความยาวราง */}
                 {Array.from({ length: panelCountPerString }).map((_, pIdx) => (
                   <rect 
                     key={pIdx} 
-                    x={xOff + overhang + (pIdx * (currentW + midClampSpace))} 
-                    y="0" 
-                    width={currentW} 
-                    height={currentL} 
+                    x={xOff} 
+                    y={overhang + (pIdx * (currentW + midClampSpace))} 
+                    width={currentL} 
+                    height={currentW} 
                     fill="#0ea5e9" 
                     stroke="#fff" 
-                    strokeWidth="5" 
+                    strokeWidth="10" 
                     rx="5" 
                   />
                 ))}
@@ -112,8 +113,8 @@ export default function App() {
       <div style={{ backgroundColor: "white", borderRadius: "16px", boxShadow: "0 10px 25px rgba(0,0,0,0.1)", padding: "20px" }}>
         <h1 style={{ color: "#1e3a8a", textAlign: "center", marginBottom: "20px", fontSize: "24px" }}>UD Solarmax engineering calc v5.5</h1>
         
-        <div style={{ marginBottom: "20px", overflowX: 'auto' }}>
-          <div style={{ minWidth: '600px' }}>
+        <div style={{ marginBottom: "20px", display: 'flex', justifyContent: 'center', background: '#f8fafc', padding: '15px', borderRadius: '12px' }}>
+          <div style={{ width: '100%', maxWidth: '850px', maxHeight: '600px', overflow: 'auto' }}>
             {renderVisualizer()}
           </div>
         </div>

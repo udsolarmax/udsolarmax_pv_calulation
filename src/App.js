@@ -21,18 +21,47 @@ export default function App() {
     panelTotalDim: 0
   });
 
-  // แก้ไขสมการให้คำนวณใหม่ทุกครั้งที่มีการเปลี่ยนค่า Input ใดๆ
+  // ใช้ useEffect เพื่อดักจับการเปลี่ยนแปลงของทุกค่าใน Input
   useEffect(() => {
-    // ใช้ panelWidth เป็นฐานหลักตามที่คุณต้องการเพื่อให้ได้ 11.72 ม. (ที่ 1134mm)
-    // แต่ค่าจะเปลี่ยนไปทันทีหากคุณแก้ไขตัวเลขในช่อง Input
-    const baseDim = (panelCountPerString * panelWidth) + ((panelCountPerString - 1) * midClampSpace);
-    const baseRowLenMM = baseDim + (2 * overhang);
-    
-    const finalRailLength = (baseRowLenMM / 1000).toFixed(2);
-    const finalRailsNeeded = Math.ceil((baseRowLenMM * 2) / railLength);
-    const finalSplices = Math.max(0, finalRailsNeeded - 2); 
-    const finalLFeet = (Math.ceil(baseRowLenMM / lFeetSpace) + 1) * 2;
+    let dimUsed, rawRowLenMM, panelsDim;
 
+    // 1. ตรวจสอบทิศทางและเลือกใช้ค่า กว้าง หรือ ยาว มาคำนวณ
+    if (panelOrientation === 'vertical') {
+      dimUsed = panelWidth;
+    } else {
+      dimUsed = panelLength; // แนวนอนใช้แผงยาวคำนวณ เพื่อให้เปลี่ยนค่าแล้วมีผล
+    }
+
+    // 2. คำนวณความยาวรวมดิบ (Raw Calculation) ตามค่าที่เปลี่ยนไป
+    panelsDim = (panelCountPerString * dimUsed) + ((panelCountPerString - 1) * midClampSpace);
+    rawRowLenMM = panelsDim + (2 * overhang);
+    
+    // 3. คำนวณวัสดุ โดยแยกสูตรตามทิศทาง
+    let finalRailLength, finalRailsNeeded, finalSplices, finalLFeet;
+
+    if (panelOrientation === 'vertical') {
+      // --- แนวตั้ง (ปกติ) ---
+      finalRailLength = (rawRowLenMM / 1000).toFixed(2);
+      finalRailsNeeded = Math.ceil((rawRowLenMM * 2) / railLength);
+      finalLFeet = (Math.ceil(rawRowLenMM / lFeetSpace) + 1) * 2;
+    } else {
+      // --- แนวนอน (คำนวณจากแผงยาว แล้วหาร 2 ตามสั่ง) ---
+      // เอาความยาวที่คำนวณจากแผงยาว (เช่น 24ม.) มาหาร 2 จะเหลือประมาณ 12ม.
+      finalRailLength = ((rawRowLenMM / 1000) / 2).toFixed(2);
+      
+      // จำนวนราง คำนวณจากความยาวแผงยาว แล้วหาร 2
+      const rawRails = Math.ceil((rawRowLenMM * 2) / railLength);
+      finalRailsNeeded = Math.ceil(rawRails / 2);
+
+      // L-Feet คำนวณจากความยาวแผงยาว แล้วหาร 2
+      const rawLFeet = (Math.ceil(rawRowLenMM / lFeetSpace) + 1) * 2;
+      finalLFeet = Math.ceil(rawLFeet / 2);
+    }
+    
+    // ตัวต่อราง (Splice)
+    finalSplices = Math.max(0, finalRailsNeeded - 2);
+
+    // 4. อัปเดตผลลัพธ์
     setResults({
       totalRailLength: finalRailLength,
       totalRailsNeeded: finalRailsNeeded * stringCount,
@@ -40,15 +69,18 @@ export default function App() {
       endClamps: 4 * stringCount,
       splices: finalSplices * stringCount,
       lFeetCount: finalLFeet * stringCount,
-      panelTotalDim: (baseDim / 1000).toFixed(2)
+      panelTotalDim: (panelsDim / 1000).toFixed(2)
     });
     
-    // เพิ่ม panelLength และค่าอื่นๆ ใน Dependency Array ให้ครบถ้วน
+  // Dependency Array: ระบุตัวแปรทุกตัว เพื่อให้เมื่อค่าใดเปลี่ยน ระบบจะคำนวณใหม่ทันที
   }, [panelWidth, panelLength, panelCountPerString, stringCount, lFeetSpace, railLength, midClampSpace, overhang, panelOrientation]);
 
   const renderVisualizer = () => {
+    // ส่วนแสดงภาพ: ใช้ค่าจริงของ กว้าง/ยาว เพื่อวาดให้ถูกต้องตามสัดส่วน
     const currentW = panelOrientation === 'vertical' ? panelWidth : panelLength;
     const currentL = panelOrientation === 'vertical' ? panelLength : panelWidth;
+    
+    // คำนวณระยะสำหรับวาดภาพ (Visual Only)
     const panelsDimMM = (panelCountPerString * currentW) + ((panelCountPerString - 1) * midClampSpace);
     const railLenMM = panelsDimMM + (2 * overhang);
 
@@ -74,22 +106,26 @@ export default function App() {
         </svg>
       );
     } else {
-      const railLenMM_Landscape = (panelCountPerString * currentL) + ((panelCountPerString - 1) * midClampSpace) + (2 * overhang);
-      const vWidth = (currentW * stringCount) + (stringCount * 800) + 400;
+      // สำหรับแนวนอน (Landscape)
+      const railLenMM_Landscape = (panelCountPerString * panelLength) + ((panelCountPerString - 1) * midClampSpace) + (2 * overhang);
+      const vWidth = (panelWidth * stringCount) + (stringCount * 800) + 400;
       const vHeight = railLenMM_Landscape + 800;
 
       return (
         <svg viewBox={`-600 -400 ${vWidth} ${vHeight}`} style={{ width: '100%', maxHeight: '80vh', height: 'auto', background: '#1e293b', borderRadius: '12px' }}>
           {Array.from({ length: stringCount }).map((_, sIdx) => {
-            const xOff = sIdx * (currentW + 800);
+            const xOff = sIdx * (panelWidth + 800);
             return (
               <g key={sIdx}>
-                <rect x={xOff + currentW * 0.25} y="0" width="45" height={railLenMM_Landscape} fill="#94a3b8" rx="10" />
-                <rect x={xOff + currentW * 0.75} y="0" width="45" height={railLenMM_Landscape} fill="#94a3b8" rx="10" />
+                {/* รางในภาพวาด ให้ยาวตามความยาวแผงจริง */}
+                <rect x={xOff + panelWidth * 0.25} y="0" width="45" height={railLenMM_Landscape} fill="#94a3b8" rx="10" />
+                <rect x={xOff + panelWidth * 0.75} y="0" width="45" height={railLenMM_Landscape} fill="#94a3b8" rx="10" />
+                
                 <line x1={xOff - 250} y1="0" x2={xOff - 250} y2={railLenMM_Landscape} stroke="#fbbf24" strokeWidth="20" />
                 <text x={xOff - 380} y={railLenMM_Landscape/2} fill="#fbbf24" fontSize="220" fontWeight="bold" textAnchor="middle" transform={`rotate(-90, ${xOff - 380}, ${railLenMM_Landscape/2})`}>รางรวม: {results.totalRailLength} ม.</text>
+                
                 {Array.from({ length: panelCountPerString }).map((_, pIdx) => (
-                  <rect key={pIdx} x={xOff} y={overhang + (pIdx * (currentL + midClampSpace))} width={currentW} height={currentL} fill="#00ffff" stroke="#fff" strokeWidth="12" rx="5" />
+                  <rect key={pIdx} x={xOff} y={overhang + (pIdx * (panelLength + midClampSpace))} width={panelWidth} height={panelLength} fill="#00ffff" stroke="#fff" strokeWidth="12" rx="5" />
                 ))}
               </g>
             );
@@ -102,12 +138,14 @@ export default function App() {
   return (
     <div style={{ padding: "10px", maxWidth: "1200px", margin: "0 auto", fontFamily: "sans-serif" }}>
       <div style={{ backgroundColor: "white", borderRadius: "16px", boxShadow: "0 10px 25px rgba(0,0,0,0.1)", padding: "20px" }}>
-        <h1 style={{ color: "#1e3a8a", textAlign: "center", marginBottom: "20px", fontSize: "24px" }}>UD Solarmax engineering calc v5.9</h1>
+        <h1 style={{ color: "#1e3a8a", textAlign: "center", marginBottom: "20px", fontSize: "24px" }}>UD Solarmax engineering calc v6.0</h1>
+        
         <div style={{ marginBottom: "20px", display: 'flex', justifyContent: 'center' }}>
           <div style={{ width: '100%', maxWidth: '950px' }}>
             {renderVisualizer()}
           </div>
         </div>
+
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "20px" }}>
           <div style={{ background: "#f8fafc", padding: "20px", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
             <h3 style={{ marginBottom: "15px", fontSize: "16px" }}>⚙️ ตั้งค่าการติดตั้ง</h3>
@@ -126,6 +164,7 @@ export default function App() {
               <InputBlock label="รางมาตรฐาน (mm)" value={railLength} onChange={setRailLength} />
             </div>
           </div>
+
           <div style={{ background: "#1e3a8a", color: "white", padding: "25px", borderRadius: "12px" }}>
             <h3 style={{ color: "#93c5fd", marginBottom: "20px", fontSize: "16px" }}>📦 รายการวัสดุ UD Solarmax</h3>
             <ResultRow label="รางรวมต่อชุด" value={`${results.totalRailLength} ม.`} highlight />

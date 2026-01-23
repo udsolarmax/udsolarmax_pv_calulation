@@ -24,53 +24,65 @@ export default function App() {
   useEffect(() => {
     let dimUsed, rawRowLenMM, panelsDim;
 
-    // 1. เลือกด้านที่จะใช้คำนวณ (แนวตั้งใช้กว้าง, แนวนอนใช้ยาว)
+    // 1. ระบุค่าที่ใช้คำนวณ (แนวตั้งใช้ Width, แนวนอนใช้ Length)
+    // หมายเหตุ: การเปลี่ยน Panel Length จะมีผลเฉพาะโหมดแนวนอนเท่านั้น
     if (panelOrientation === 'vertical') {
       dimUsed = panelWidth;
     } else {
       dimUsed = panelLength;
     }
 
-    // 2. คำนวณความยาวรวมของแผง (มม.)
+    // 2. คำนวณความยาวแถวรวม (Raw Row Length)
     panelsDim = (panelCountPerString * dimUsed) + ((panelCountPerString - 1) * midClampSpace);
     rawRowLenMM = panelsDim + (2 * overhang);
     
-    // 3. กำหนด "ความยาวรางที่ต้องใช้จริงต่อแถว" (Effective Length)
-    // - แนวตั้ง: ใช้ความยาวจริง
-    // - แนวนอน: ใช้ความยาวจริงหาร 2 (ตามสูตรที่คุณต้องการ)
-    const effectiveRowLenMM = panelOrientation === 'vertical' ? rawRowLenMM : (rawRowLenMM / 2);
-
-    // 4. คำนวณวัสดุแบบ "Per Line" (คิดแยกทีละแถวราง เพื่อความแม่นยำหน้างาน)
+    // 3. คำนวณวัสดุ
+    let finalRailLength, finalRailsNeeded, finalSplices, finalLFeet;
     
-    // จำนวนรางต่อ 1 แถวราง (ปัดเศษขึ้นเสมอ)
-    // เช่น ยาว 11.72ม. / ราง 4.2ม. = 2.79 -> ต้องใช้ 3 เส้น
-    const railsPerLine = Math.ceil(effectiveRowLenMM / railLength);
+    // จำนวนเส้นรางรวมทั้งหมดที่ต้องวาง (ปกติ 1 สตริงมี 2 เส้นราง)
+    const totalLines = 2 * stringCount; 
+
+    if (panelOrientation === 'vertical') {
+      // --- แนวตั้ง (ปกติ) ---
+      finalRailLength = (rawRowLenMM / 1000).toFixed(2);
+      
+      // ใช้สูตร Total Optimization (ความยาวรวม / ความยาวราง) เพื่อให้ได้จำนวนน้อยที่สุด
+      // เช่น 23.64ม. / 4.8ม. = 4.92 -> 5 เส้น (ถูกต้องตามหลักประหยัด)
+      const totalLenRequired = rawRowLenMM * totalLines;
+      finalRailsNeeded = Math.ceil(totalLenRequired / railLength);
+      
+      // L-Feet (คิดรายแถวเหมือนเดิม)
+      finalLFeet = (Math.ceil(rawRowLenMM / lFeetSpace) + 1) * totalLines;
+
+    } else {
+      // --- แนวนอน (หาร 2 ตามสูตรพิเศษ) ---
+      finalRailLength = ((rawRowLenMM / 1000) / 2).toFixed(2);
+      
+      // จำนวนราง: คิดจากความยาวรวม แล้วหาร 2
+      const totalLenRequired = rawRowLenMM * totalLines;
+      const rawRails = Math.ceil(totalLenRequired / railLength);
+      finalRailsNeeded = Math.ceil(rawRails / 2);
+
+      // L-Feet: คิดปกติ แล้วหาร 2
+      const rawLFeet = (Math.ceil(rawRowLenMM / lFeetSpace) + 1) * totalLines;
+      finalLFeet = Math.ceil(rawLFeet / 2);
+    }
     
-    // จำนวนรางรวมทั้งหมด (1 สตริงมีราง 2 แถวบน-ล่าง)
-    const totalRailsNeeded = railsPerLine * 2 * stringCount;
+    // คำนวณ Splice (ตัวต่อราง)
+    // สูตร: จำนวนรางที่สั่ง - จำนวนแถวที่วาง (เชื่อมต่อรางทุกจุดที่ขาด)
+    // เช่น สั่ง 5 เส้น วาง 2 แถว -> จุดต่อคือ 5-2 = 3 จุด
+    finalSplices = Math.max(0, finalRailsNeeded - totalLines);
 
-    // ตัวต่อราง (Splice) ต่อ 1 แถวราง = จำนวนราง - 1
-    // เช่น ใช้ 3 เส้น -> มีรอยต่อ 2 จุด
-    const splicesPerLine = Math.max(0, railsPerLine - 1);
-    const totalSplices = splicesPerLine * 2 * stringCount;
-
-    // L-Feet
-    const lFeetPerLine = Math.ceil(effectiveRowLenMM / lFeetSpace) + 1;
-    const totalLFeet = lFeetPerLine * 2 * stringCount;
-
-    // 5. สรุปผลลัพธ์
     setResults({
-      // แสดงความยาวรางรวมที่ใช้คำนวณ
-      totalRailLength: (effectiveRowLenMM / 1000).toFixed(2),
-      totalRailsNeeded: totalRailsNeeded,
+      totalRailLength: finalRailLength,
+      totalRailsNeeded: finalRailsNeeded,
       midClamps: ((panelCountPerString - 1) * 2) * stringCount,
       endClamps: 4 * stringCount,
-      splices: totalSplices,
-      lFeetCount: totalLFeet,
+      splices: finalSplices,
+      lFeetCount: finalLFeet,
       panelTotalDim: (panelsDim / 1000).toFixed(2)
     });
     
-  // Dependency Array ครบถ้วน: เปลี่ยนค่าไหน คำนวณใหม่ทันที
   }, [panelWidth, panelLength, panelCountPerString, stringCount, lFeetSpace, railLength, midClampSpace, overhang, panelOrientation]);
 
   const renderVisualizer = () => {
@@ -130,7 +142,7 @@ export default function App() {
   return (
     <div style={{ padding: "10px", maxWidth: "1200px", margin: "0 auto", fontFamily: "sans-serif" }}>
       <div style={{ backgroundColor: "white", borderRadius: "16px", boxShadow: "0 10px 25px rgba(0,0,0,0.1)", padding: "20px" }}>
-        <h1 style={{ color: "#1e3a8a", textAlign: "center", marginBottom: "20px", fontSize: "24px" }}>UD Solarmax engineering calc v6.1</h1>
+        <h1 style={{ color: "#1e3a8a", textAlign: "center", marginBottom: "20px", fontSize: "24px" }}>UD Solarmax engineering calc v6.2</h1>
         
         <div style={{ marginBottom: "20px", display: 'flex', justifyContent: 'center' }}>
           <div style={{ width: '100%', maxWidth: '950px' }}>

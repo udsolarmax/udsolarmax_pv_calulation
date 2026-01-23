@@ -21,27 +21,36 @@ export default function App() {
     panelTotalDim: 0
   });
 
-  // ปรับปรุงส่วนการคำนวณให้แม่นยำตามมาตรฐาน UD Solarmax
+  const currentW = panelOrientation === 'vertical' ? panelWidth : panelLength;
+  const currentL = panelOrientation === 'vertical' ? panelLength : panelWidth;
+
   useEffect(() => {
-    let rowLenMM = 0;
-    let panelsDim = 0;
+    // คำนวณความยาวรวมของแผงและราง
+    const panelsDim = (panelCountPerString * currentW) + ((panelCountPerString - 1) * midClampSpace);
+    const rowLenMM = panelsDim + (2 * overhang);
+    
+    // คำนวณอุปกรณ์พื้นฐาน
+    const midPerString = (panelCountPerString - 1) * 2;
+    
+    let railsPerString, splicesPerString, lFeetPerString;
 
     if (panelOrientation === 'vertical') {
-      // แนวตั้ง: รางวิ่งขวางแผง ความยาวรางขึ้นอยู่กับความกว้างแผง (Panel Width)
-      panelsDim = (panelCountPerString * panelWidth) + ((panelCountPerString - 1) * midClampSpace);
-      rowLenMM = panelsDim + (2 * overhang);
+      // โหมดแนวตั้ง (ปกติ)
+      railsPerString = Math.ceil((rowLenMM * 2) / railLength);
+      splicesPerString = Math.max(0, railsPerString - 2); 
+      lFeetPerString = (Math.ceil(rowLenMM / lFeetSpace) + 1) * 2;
     } else {
-      // แนวนอน: รางวิ่งขวางแผง ความยาวรางขึ้นอยู่กับความยาวแผง (Panel Length)
-      // หมายเหตุ: ในทางเทคนิคการวางแนวนอน 1 แถว รางจะยาวเท่ากับ (ความยาวแผง x จำนวนแผง)
-      panelsDim = (panelCountPerString * panelLength) + ((panelCountPerString - 1) * midClampSpace);
-      rowLenMM = panelsDim + (2 * overhang);
+      // โหมดแนวนอน: แก้ไขสมการตามคำแนะนำของคุณ โดยหารส่วนที่เกินออกเพื่อให้ค่าเท่ากับแนวตั้ง
+      // เนื่องจากภาพแสดงผลแนวนอนใช้ระยะ rowLenMM ที่ยาวกว่าแนวตั้ง (จาก panelLength) 
+      // เราจึงปรับสมการคำนวณวัสดุให้สอดคล้องกัน
+      railsPerString = Math.ceil((rowLenMM * 2) / railLength) / 2;
+      // ปัดเศษขึ้นเพื่อให้จำนวนเส้นรางเป็นเลขเต็ม
+      railsPerString = Math.ceil(railsPerString); 
+      
+      splicesPerString = Math.max(0, railsPerString - 2);
+      // คำนวณ L-Feet ให้เท่ากับจำนวนที่ใช้จริงในแนวตั้ง
+      lFeetPerString = (Math.ceil(rowLenMM / lFeetSpace) + 1); 
     }
-    
-    // คำนวณอุปกรณ์ (ต่อ 1 แถว)
-    const midPerString = (panelCountPerString - 1) * 2;
-    const railsPerString = Math.ceil((rowLenMM * 2) / railLength);
-    const splicesPerString = Math.max(0, railsPerString - 2); 
-    const lFeetPerString = (Math.ceil(rowLenMM / lFeetSpace) + 1) * 2;
 
     setResults({
       totalRailLength: (rowLenMM / 1000).toFixed(2),
@@ -52,10 +61,7 @@ export default function App() {
       lFeetCount: lFeetPerString * stringCount,
       panelTotalDim: (panelsDim / 1000).toFixed(2)
     });
-  }, [panelWidth, panelLength, panelCountPerString, stringCount, lFeetSpace, railLength, midClampSpace, overhang, panelOrientation]);
-
-  const currentW = panelOrientation === 'vertical' ? panelWidth : panelLength;
-  const currentL = panelOrientation === 'vertical' ? panelLength : panelWidth;
+  }, [currentW, currentL, panelCountPerString, stringCount, lFeetSpace, railLength, midClampSpace, overhang, panelOrientation]);
 
   const renderVisualizer = () => {
     const panelsDimMM = (panelCountPerString * currentW) + ((panelCountPerString - 1) * midClampSpace);
@@ -83,22 +89,23 @@ export default function App() {
         </svg>
       );
     } else {
-      const railLenMM_Landscape = (panelCountPerString * panelLength) + ((panelCountPerString - 1) * midClampSpace) + (2 * overhang);
-      const vWidth = (panelWidth * stringCount) + (stringCount * 800) + 400;
+      const totalPanelH = (panelCountPerString * currentL) + ((panelCountPerString - 1) * midClampSpace);
+      const railLenMM_Landscape = totalPanelH + (2 * overhang);
+      const vWidth = (currentW * stringCount) + (stringCount * 800) + 400;
       const vHeight = railLenMM_Landscape + 800;
 
       return (
         <svg viewBox={`-600 -400 ${vWidth} ${vHeight}`} style={{ width: '100%', maxHeight: '80vh', height: 'auto', background: '#1e293b', borderRadius: '12px' }}>
           {Array.from({ length: stringCount }).map((_, sIdx) => {
-            const xOff = sIdx * (panelWidth + 800);
+            const xOff = sIdx * (currentW + 800);
             return (
               <g key={sIdx}>
-                <rect x={xOff + panelWidth * 0.25} y="0" width="45" height={railLenMM_Landscape} fill="#94a3b8" rx="10" />
-                <rect x={xOff + panelWidth * 0.75} y="0" width="45" height={railLenMM_Landscape} fill="#94a3b8" rx="10" />
+                <rect x={xOff + currentW * 0.25} y="0" width="45" height={railLenMM_Landscape} fill="#94a3b8" rx="10" />
+                <rect x={xOff + currentW * 0.75} y="0" width="45" height={railLenMM_Landscape} fill="#94a3b8" rx="10" />
                 <line x1={xOff - 250} y1="0" x2={xOff - 250} y2={railLenMM_Landscape} stroke="#fbbf24" strokeWidth="20" />
                 <text x={xOff - 380} y={railLenMM_Landscape/2} fill="#fbbf24" fontSize="220" fontWeight="bold" textAnchor="middle" transform={`rotate(-90, ${xOff - 380}, ${railLenMM_Landscape/2})`}>รางรวม: {results.totalRailLength} ม.</text>
                 {Array.from({ length: panelCountPerString }).map((_, pIdx) => (
-                  <rect key={pIdx} x={xOff} y={overhang + (pIdx * (panelLength + midClampSpace))} width={panelWidth} height={panelLength} fill="#00ffff" stroke="#fff" strokeWidth="12" rx="5" />
+                  <rect key={pIdx} x={xOff} y={overhang + (pIdx * (currentL + midClampSpace))} width={currentW} height={currentL} fill="#00ffff" stroke="#fff" strokeWidth="12" rx="5" />
                 ))}
               </g>
             );
@@ -111,7 +118,7 @@ export default function App() {
   return (
     <div style={{ padding: "10px", maxWidth: "1200px", margin: "0 auto", fontFamily: "sans-serif" }}>
       <div style={{ backgroundColor: "white", borderRadius: "16px", boxShadow: "0 10px 25px rgba(0,0,0,0.1)", padding: "20px" }}>
-        <h1 style={{ color: "#1e3a8a", textAlign: "center", marginBottom: "20px", fontSize: "24px" }}>UD Solarmax engineering calc v5.5</h1>
+        <h1 style={{ color: "#1e3a8a", textAlign: "center", marginBottom: "20px", fontSize: "24px" }}>UD Solarmax engineering calc v5.6</h1>
         <div style={{ marginBottom: "20px", display: 'flex', justifyContent: 'center' }}>
           <div style={{ width: '100%', maxWidth: '950px' }}>
             {renderVisualizer()}

@@ -135,7 +135,7 @@ export default function App() {
                             style={{
                                 // ขนาดแผง (Fix size เพื่อความสวยงามในแบบ Column)
                                 width: mode === 'landscape' ? '80px' : '40px',
-                                height: mode === 'landscape' ? '50px' : '80px',
+                                height: mode === 'landscape' ? '40px' : '80px',
                                 // Aspect Ratio เผื่อไว้
                                 aspectRatio: mode === 'landscape' ? '3/2' : '2/3'
                             }}

@@ -17,7 +17,6 @@ export default function App() {
   const [lFeetDist, setLFeetDist] = useState(1200); // มม.
 
   // --- 3. สูตรคำนวณ (Calculation Logic) ---
-  // A. ความยาวเชิงเรขาคณิต (Total Geometry Length)
   const totalPanelWidth = panels * panelWidth;
   const totalMidGaps = (panels > 0 ? panels - 1 : 0) * (midClamp / 1000);
   const totalOverhangs = 2 * (overhang / 1000);
@@ -26,22 +25,14 @@ export default function App() {
 
   // B. คำนวณวัสดุ (BOM)
   const totalRailLines = 2 * strings;
-
-  // B1. จำนวนรางที่ต้องสั่ง (เส้น)
   const barsPerLine = Math.ceil(railLengthPerString / railUnitLen);
   const totalBars = barsPerLine * totalRailLines;
-
-  // B2. ตัวต่อราง (Splice)
   const splicePerLine = barsPerLine > 1 ? barsPerLine - 1 : 0;
   const totalSplices = splicePerLine * totalRailLines;
-
-  // B3. อุปกรณ์อื่นๆ
   const lFeetPerLine = Math.ceil((railLengthPerString * 1000) / lFeetDist) + 1;
   const totalLFeet = lFeetPerLine * totalRailLines;
-
   const midClampPerString = (panels > 0 ? panels - 1 : 0) * 2;
   const totalMidClamp = midClampPerString * strings;
-
   const endClampPerString = 4;
   const totalEndClamp = endClampPerString * strings;
 
@@ -52,7 +43,7 @@ export default function App() {
       <div className="bg-white p-4 md:p-6 rounded-xl shadow-lg w-full max-w-7xl border-t-8 border-[#0ea5e9]">
         <div className="flex flex-col md:flex-row justify-between items-center mb-6">
           <h1 className="text-xl md:text-2xl font-bold text-gray-800">
-            UD Solarmax <span className="block md:inline text-xs md:text-sm font-normal text-gray-500">Engineering Calc v6.5</span>
+            UD Solarmax <span className="block md:inline text-xs md:text-sm font-normal text-gray-500">Engineering Calc v6.6 (Separated View)</span>
           </h1>
           <div className="mt-2 md:mt-0 px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-bold">
              Strings: {strings}
@@ -63,7 +54,6 @@ export default function App() {
 
           {/* --- ฝั่งซ้าย: Control Panel (3/12) --- */}
           <div className="lg:col-span-3 space-y-4">
-
             {/* Mode */}
             <div className="grid grid-cols-2 gap-2">
               <button onClick={() => setMode('landscape')} className={`px-2 py-2 rounded border-2 text-xs font-bold ${mode==='landscape' ? "border-blue-500 bg-blue-50 text-blue-900" : "border-gray-200 text-gray-500"}`}>
@@ -116,36 +106,66 @@ export default function App() {
           </div>
 
           {/* --- ตรงกลาง: Visualization (6/12) --- */}
-          {/* แก้ไข Layout หลัก: ให้เป็น Flex-Row เพื่อเรียงสตริงไปทางขวา */}
           <div className="lg:col-span-6 bg-slate-800 rounded-xl p-4 flex flex-col relative min-h-[500px]">
-             <div className="text-xs text-white opacity-50 mb-4 text-center">Preview: {panels} Panels x {strings} Strings (Side-by-Side)</div>
+             <div className="text-xs text-white opacity-50 mb-4 text-center">Preview: {panels} Panels x {strings} Strings (Separated Logic)</div>
 
-             {/* Container ของสตริงทั้งหมด: ใช้ flex-row + overflow-x-auto เพื่อเลื่อนไปทางขวา */}
+             {/* Container หลัก: เรียงสตริงไปทางขวาเสมอ */}
              <div className="flex flex-row gap-6 w-full h-full overflow-x-auto p-4 items-start">
+                
                 {[...Array(strings > 0 ? strings : 1)].map((_, s) => (
                   <div key={s} className="shrink-0 flex flex-col items-center">
                     <div className="text-[10px] text-blue-300 mb-2 font-bold bg-slate-700 px-2 py-0.5 rounded-full">STR {s+1}</div>
                     
-                    {/* Container ของแผงใน 1 สตริง */}
-                    {/* Logic: ถ้า Landscape = เรียงลง (col), ถ้า Portrait = เรียงข้าง (row) */}
-                    <div className={`flex ${mode === 'landscape' ? 'flex-col' : 'flex-row'} bg-slate-700/30 p-2 rounded-lg border border-slate-600/50 justify-start gap-px md:gap-1`}>
-                        {[...Array(panels > 0 ? panels : 0)].map((_, i) => (
-                          <div
-                            key={i}
-                            style={{
-                                // ขนาดแผง (Fix size เพื่อความสวยงามในแบบ Column)
-                                width: mode === 'landscape' ? '80px' : '40px',
-                                height: mode === 'landscape' ? '40px' : '80px',
-                                // Aspect Ratio เผื่อไว้
-                                aspectRatio: mode === 'landscape' ? '3/2' : '2/3'
-                            }}
-                            className="bg-[#0ea5e9] border border-white/20 shadow-sm relative shrink-0 transition-all hover:bg-blue-400"
-                          >
-                            <div className="absolute inset-0 opacity-20 bg-[linear-gradient(45deg,transparent_25%,rgba(255,255,255,0.3)_50%,transparent_75%,transparent_100%)] bg-[length:250%_250%,100%_100%]"></div>
-                            <div className="absolute inset-0 border-[0.5px] border-white/10"></div>
-                          </div>
-                        ))}
-                    </div>
+                    {/* ======================================================= */}
+                    {/* ส่วนแยกคำสั่งการแสดงผล (Separated Rendering Logic)       */}
+                    {/* ======================================================= */}
+                    
+                    {mode === 'landscape' ? (
+                        // ---------------------------------------------
+                        // 1. โซนสำหรับ "แผงแนวนอน" (Landscape) เท่านั้น
+                        // ---------------------------------------------
+                        <div className="flex flex-col bg-slate-700/30 p-2 rounded-lg border border-slate-600/50 justify-start gap-px md:gap-1">
+                            {[...Array(panels > 0 ? panels : 0)].map((_, i) => (
+                              <div
+                                key={i}
+                                style={{
+                                    // *** จุดแก้ไขขนาด แผงแนวนอน (Landscape Size) ***
+                                    width: '80px',   // แก้ตรงนี้ได้เลย ไม่กระทบแนวตั้ง
+                                    height: '40px',  // ค่านี้ที่คุณแจ้งว่าโอเค (50->40)
+                                    aspectRatio: '3/2'
+                                }}
+                                className="bg-[#0ea5e9] border border-white/20 shadow-sm relative shrink-0 transition-all hover:bg-blue-400"
+                              >
+                                <div className="absolute inset-0 opacity-20 bg-[linear-gradient(45deg,transparent_25%,rgba(255,255,255,0.3)_50%,transparent_75%,transparent_100%)] bg-[length:250%_250%,100%_100%]"></div>
+                                <div className="absolute inset-0 border-[0.5px] border-white/10"></div>
+                              </div>
+                            ))}
+                        </div>
+
+                    ) : (
+
+                        // ---------------------------------------------
+                        // 2. โซนสำหรับ "แผงแนวตั้ง" (Portrait) เท่านั้น
+                        // ---------------------------------------------
+                        <div className="flex flex-row bg-slate-700/30 p-2 rounded-lg border border-slate-600/50 justify-start gap-px md:gap-1">
+                            {[...Array(panels > 0 ? panels : 0)].map((_, i) => (
+                              <div
+                                key={i}
+                                style={{
+                                    // *** จุดแก้ไขขนาด แผงแนวตั้ง (Portrait Size) ***
+                                    width: '40px',   // แก้ตรงนี้ได้เลย ไม่กระทบแนวนอน
+                                    height: '80px',  // กลับมาใช้ค่าเดิมที่เคยสวยงาม
+                                    aspectRatio: '2/3'
+                                }}
+                                className="bg-[#0ea5e9] border border-white/20 shadow-sm relative shrink-0 transition-all hover:bg-blue-400"
+                              >
+                                <div className="absolute inset-0 opacity-20 bg-[linear-gradient(45deg,transparent_25%,rgba(255,255,255,0.3)_50%,transparent_75%,transparent_100%)] bg-[length:250%_250%,100%_100%]"></div>
+                                <div className="absolute inset-0 border-[0.5px] border-white/10"></div>
+                              </div>
+                            ))}
+                        </div>
+                    )}
+                    
                   </div>
                 ))}
              </div>
@@ -161,7 +181,6 @@ export default function App() {
                 <table className="w-full text-xs text-left">
                    <tbody className="divide-y divide-gray-100">
                       <tr><td className="px-3 py-2 text-gray-700">ความยาวสุทธิ/แนว</td><td className="px-3 py-2 text-right font-bold text-blue-600">{railLengthPerString.toFixed(2)} ม.</td></tr>
-
                       <tr className="bg-yellow-50">
                         <td className="px-3 py-2 text-yellow-800 font-bold">จำนวนราง ({railUnitLen.toFixed(1)}ม.)</td>
                         <td className="px-3 py-2 text-right font-bold text-red-600 text-sm">{totalBars} เส้น</td>
@@ -170,7 +189,6 @@ export default function App() {
                         <td className="px-3 py-2 text-yellow-800">ตัวต่อราง (Splice)</td>
                         <td className="px-3 py-2 text-right font-bold text-yellow-900">{totalSplices} ตัว</td>
                       </tr>
-
                       <tr><td className="px-3 py-2 text-gray-700">L-Feet</td><td className="px-3 py-2 text-right font-bold">{totalLFeet} ตัว</td></tr>
                       <tr><td className="px-3 py-2 text-gray-700">Mid Clamp</td><td className="px-3 py-2 text-right">{totalMidClamp} ตัว</td></tr>
                       <tr><td className="px-3 py-2 text-gray-700">End Clamp</td><td className="px-3 py-2 text-right">{totalEndClamp} ตัว</td></tr>
@@ -178,7 +196,6 @@ export default function App() {
                    </tbody>
                 </table>
              </div>
-
              <div className="p-3 bg-blue-50 rounded-lg text-[10px] text-blue-800 border border-blue-100">
                <strong>สูตรคำนวณ:</strong><br/>
                ความยาว = (แผง x {panels}) + MidGap + เผื่อปลาย<br/>

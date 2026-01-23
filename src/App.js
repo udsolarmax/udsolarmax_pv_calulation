@@ -21,16 +21,23 @@ export default function App() {
     panelTotalDim: 0
   });
 
-  const currentW = panelOrientation === 'vertical' ? panelWidth : panelLength;
-  const currentL = panelOrientation === 'vertical' ? panelLength : panelWidth;
-
-  // ส่วนที่แก้ไข: การคำนวณอุปกรณ์ให้ถูกต้องทั้งแนวตั้งและแนวนอน
+  // ปรับปรุงส่วนการคำนวณให้แม่นยำตามมาตรฐาน UD Solarmax
   useEffect(() => {
-    // เลือกใช้ด้านของแผงตามทิศทางการวาง
-    const dimensionForLength = panelOrientation === 'vertical' ? panelWidth : panelLength;
-    const panelsDim = (panelCountPerString * dimensionForLength) + ((panelCountPerString - 1) * midClampSpace);
-    const rowLenMM = panelsDim + (2 * overhang);
+    let rowLenMM = 0;
+    let panelsDim = 0;
+
+    if (panelOrientation === 'vertical') {
+      // แนวตั้ง: รางวิ่งขวางแผง ความยาวรางขึ้นอยู่กับความกว้างแผง (Panel Width)
+      panelsDim = (panelCountPerString * panelWidth) + ((panelCountPerString - 1) * midClampSpace);
+      rowLenMM = panelsDim + (2 * overhang);
+    } else {
+      // แนวนอน: รางวิ่งขวางแผง ความยาวรางขึ้นอยู่กับความยาวแผง (Panel Length)
+      // หมายเหตุ: ในทางเทคนิคการวางแนวนอน 1 แถว รางจะยาวเท่ากับ (ความยาวแผง x จำนวนแผง)
+      panelsDim = (panelCountPerString * panelLength) + ((panelCountPerString - 1) * midClampSpace);
+      rowLenMM = panelsDim + (2 * overhang);
+    }
     
+    // คำนวณอุปกรณ์ (ต่อ 1 แถว)
     const midPerString = (panelCountPerString - 1) * 2;
     const railsPerString = Math.ceil((rowLenMM * 2) / railLength);
     const splicesPerString = Math.max(0, railsPerString - 2); 
@@ -46,6 +53,9 @@ export default function App() {
       panelTotalDim: (panelsDim / 1000).toFixed(2)
     });
   }, [panelWidth, panelLength, panelCountPerString, stringCount, lFeetSpace, railLength, midClampSpace, overhang, panelOrientation]);
+
+  const currentW = panelOrientation === 'vertical' ? panelWidth : panelLength;
+  const currentL = panelOrientation === 'vertical' ? panelLength : panelWidth;
 
   const renderVisualizer = () => {
     const panelsDimMM = (panelCountPerString * currentW) + ((panelCountPerString - 1) * midClampSpace);
@@ -64,41 +74,32 @@ export default function App() {
                 <rect x="0" y={yOff + currentL * 0.75} width={railLenMM} height="40" fill="#94a3b8" rx="10" />
                 <line x1="0" y1={yOff - 150} x2={railLenMM} y2={yOff - 150} stroke="#fbbf24" strokeWidth="15" />
                 <text x={railLenMM/2} y={yOff - 220} fill="#fbbf24" fontSize="200" fontWeight="bold" textAnchor="middle">รางรวม: {results.totalRailLength} ม.</text>
-                <line x1="0" y1={yOff + currentL * 0.25 + 20} x2={lFeetSpace} y2={yOff + currentL * 0.25 + 20} stroke="#60a5fa" strokeWidth="10" strokeDasharray="20,20" />
-                <text x={lFeetSpace/2} y={yOff + currentL * 0.25 - 20} fill="#60a5fa" fontSize="150" fontWeight="bold" textAnchor="middle">L-Feet: {lFeetSpace}mm</text>
                 {Array.from({ length: panelCountPerString }).map((_, pIdx) => (
                   <rect key={pIdx} x={overhang + (pIdx * (currentW + midClampSpace))} y={yOff} width={currentW} height={currentL} fill="#334155" stroke="#475569" strokeWidth="10" rx="5" />
                 ))}
-                <line x1="0" y1={yOff + currentL + 120} x2={overhang} y2={yOff + currentL + 120} stroke="#f87171" strokeWidth="10" strokeDasharray="30,30" />
-                <text x={overhang/2} y={yOff + currentL + 300} fill="#f87171" fontSize="150" fontWeight="bold" textAnchor="middle">{overhang}mm</text>
               </g>
             );
           })}
         </svg>
       );
     } else {
-      const totalPanelH = (panelCountPerString * currentL) + ((panelCountPerString - 1) * midClampSpace);
-      const railLenMM_Landscape = totalPanelH + (2 * overhang);
-      const vWidth = (currentW * stringCount) + (stringCount * 800) + 400;
+      const railLenMM_Landscape = (panelCountPerString * panelLength) + ((panelCountPerString - 1) * midClampSpace) + (2 * overhang);
+      const vWidth = (panelWidth * stringCount) + (stringCount * 800) + 400;
       const vHeight = railLenMM_Landscape + 800;
 
       return (
         <svg viewBox={`-600 -400 ${vWidth} ${vHeight}`} style={{ width: '100%', maxHeight: '80vh', height: 'auto', background: '#1e293b', borderRadius: '12px' }}>
           {Array.from({ length: stringCount }).map((_, sIdx) => {
-            const xOff = sIdx * (currentW + 800);
+            const xOff = sIdx * (panelWidth + 800);
             return (
               <g key={sIdx}>
-                <rect x={xOff + currentW * 0.25} y="0" width="45" height={railLenMM_Landscape} fill="#94a3b8" rx="10" />
-                <rect x={xOff + currentW * 0.75} y="0" width="45" height={railLenMM_Landscape} fill="#94a3b8" rx="10" />
+                <rect x={xOff + panelWidth * 0.25} y="0" width="45" height={railLenMM_Landscape} fill="#94a3b8" rx="10" />
+                <rect x={xOff + panelWidth * 0.75} y="0" width="45" height={railLenMM_Landscape} fill="#94a3b8" rx="10" />
                 <line x1={xOff - 250} y1="0" x2={xOff - 250} y2={railLenMM_Landscape} stroke="#fbbf24" strokeWidth="20" />
                 <text x={xOff - 380} y={railLenMM_Landscape/2} fill="#fbbf24" fontSize="220" fontWeight="bold" textAnchor="middle" transform={`rotate(-90, ${xOff - 380}, ${railLenMM_Landscape/2})`}>รางรวม: {results.totalRailLength} ม.</text>
-                <line x1={xOff + currentW * 0.25 + 60} y1="0" x2={xOff + currentW * 0.25 + 60} y2={lFeetSpace} stroke="#60a5fa" strokeWidth="12" strokeDasharray="30,30" />
-                <text x={xOff + currentW * 0.25 + 200} y={lFeetSpace/2} fill="#60a5fa" fontSize="180" fontWeight="bold" textAnchor="start">L-Feet: {lFeetSpace}mm</text>
                 {Array.from({ length: panelCountPerString }).map((_, pIdx) => (
-                  <rect key={pIdx} x={xOff} y={overhang + (pIdx * (currentL + midClampSpace))} width={currentW} height={currentL} fill="#00ffff" stroke="#fff" strokeWidth="12" rx="5" />
+                  <rect key={pIdx} x={xOff} y={overhang + (pIdx * (panelLength + midClampSpace))} width={panelWidth} height={panelLength} fill="#00ffff" stroke="#fff" strokeWidth="12" rx="5" />
                 ))}
-                <line x1={xOff + currentW + 80} y1="0" x2={xOff + currentW + 80} y2={overhang} stroke="#f87171" strokeWidth="12" strokeDasharray="40,40" />
-                <text x={xOff + currentW + 220} y={overhang/2} fill="#f87171" fontSize="180" fontWeight="bold" textAnchor="start">{overhang}mm</text>
               </g>
             );
           })}

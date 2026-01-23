@@ -25,40 +25,30 @@ export default function App() {
   const currentL = panelOrientation === 'vertical' ? panelLength : panelWidth;
 
   useEffect(() => {
-    // คำนวณความยาวรวมของแผงและราง
     const panelsDim = (panelCountPerString * currentW) + ((panelCountPerString - 1) * midClampSpace);
     const rowLenMM = panelsDim + (2 * overhang);
     
-    // คำนวณอุปกรณ์พื้นฐาน
-    const midPerString = (panelCountPerString - 1) * 2;
-    
-    let railsPerString, splicesPerString, lFeetPerString;
+    let rails, splices, lFeet;
 
     if (panelOrientation === 'vertical') {
-      // โหมดแนวตั้ง (ปกติ)
-      railsPerString = Math.ceil((rowLenMM * 2) / railLength);
-      splicesPerString = Math.max(0, railsPerString - 2); 
-      lFeetPerString = (Math.ceil(rowLenMM / lFeetSpace) + 1) * 2;
+      // --- คำนวณแนวตั้ง (ปกติ) ---
+      rails = Math.ceil((rowLenMM * 2) / railLength);
+      splices = Math.max(0, rails - 2); 
+      lFeet = (Math.ceil(rowLenMM / lFeetSpace) + 1) * 2;
     } else {
-      // โหมดแนวนอน: แก้ไขสมการตามคำแนะนำของคุณ โดยหารส่วนที่เกินออกเพื่อให้ค่าเท่ากับแนวตั้ง
-      // เนื่องจากภาพแสดงผลแนวนอนใช้ระยะ rowLenMM ที่ยาวกว่าแนวตั้ง (จาก panelLength) 
-      // เราจึงปรับสมการคำนวณวัสดุให้สอดคล้องกัน
-      railsPerString = Math.ceil((rowLenMM * 2) / railLength) / 2;
-      // ปัดเศษขึ้นเพื่อให้จำนวนเส้นรางเป็นเลขเต็ม
-      railsPerString = Math.ceil(railsPerString); 
-      
-      splicesPerString = Math.max(0, railsPerString - 2);
-      // คำนวณ L-Feet ให้เท่ากับจำนวนที่ใช้จริงในแนวตั้ง
-      lFeetPerString = (Math.ceil(rowLenMM / lFeetSpace) + 1); 
+      // --- คำนวณแนวนอน (แก้ไขโดยการหารสองทั้งหมดตามสั่ง) ---
+      rails = Math.ceil((rowLenMM * 2) / railLength) / 2;
+      splices = Math.max(0, (Math.ceil((rowLenMM * 2) / railLength) - 2)) / 2;
+      lFeet = ((Math.ceil(rowLenMM / lFeetSpace) + 1) * 2) / 2;
     }
 
     setResults({
       totalRailLength: (rowLenMM / 1000).toFixed(2),
-      totalRailsNeeded: railsPerString * stringCount,
-      midClamps: midPerString * stringCount,
+      totalRailsNeeded: Math.ceil(rails) * stringCount,
+      midClamps: ((panelCountPerString - 1) * 2) * stringCount,
       endClamps: 4 * stringCount,
-      splices: splicesPerString * stringCount,
-      lFeetCount: lFeetPerString * stringCount,
+      splices: Math.ceil(splices) * stringCount,
+      lFeetCount: Math.ceil(lFeet) * stringCount,
       panelTotalDim: (panelsDim / 1000).toFixed(2)
     });
   }, [currentW, currentL, panelCountPerString, stringCount, lFeetSpace, railLength, midClampSpace, overhang, panelOrientation]);

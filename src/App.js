@@ -3,8 +3,8 @@ import React, { useState } from 'react';
 export default function App() {
   // --- 1. Main Specs ---
   const [mode, setMode] = useState('landscape');
-  const [panels, setPanels] = useState(10);
-  const [strings, setStrings] = useState(2);
+  const [panels, setPanels] = useState(5); // Default 5 แผงตามตัวอย่าง
+  const [strings, setStrings] = useState(1); // Default 1 สตริง
 
   // สเปคแผง
   const [panelWidth, setPanelWidth] = useState(1.303);
@@ -24,13 +24,27 @@ export default function App() {
   const railLengthPerString = totalPanelWidth + totalMidGaps + totalOverhangs;
 
   // B. คำนวณวัสดุ (BOM)
-  const totalRailLines = 2 * strings;
-  const barsPerLine = Math.ceil(railLengthPerString / railUnitLen);
-  const totalBars = barsPerLine * totalRailLines;
-  const splicePerLine = barsPerLine > 1 ? barsPerLine - 1 : 0;
-  const totalSplices = splicePerLine * totalRailLines;
+
+  // --- แก้ไขใหม่: คำนวณราง (Total Bars) แบบรวมความยาวต่อสตริง ---
+  // 1. ความยาวที่ต้องใช้ทั้งหมดใน 1 สตริง (รางบน + รางล่าง)
+  const totalLenNeededPerString = railLengthPerString * 2;
+  
+  // 2. หารความยาวรางมาตรฐาน แล้วปัดเศษขึ้น
+  const barsPerString = Math.ceil(totalLenNeededPerString / railUnitLen);
+  
+  // 3. คูณจำนวนสตริงทั้งหมด
+  const totalBars = barsPerString * strings;
+
+  // --- คำนวณตัวต่อราง (Splice) ---
+  // ใช้ Logic เดิม: ดูทางกายภาพว่าราง 1 แนว ยาวเกินรางมาตรฐานหรือไม่
+  // ต้องคำนวณแยก เพราะถึงจะประหยัดรางซื้อได้ แต่จุดต่อรางต้องมีตามจริง
+  const barsGeoPerLine = Math.ceil(railLengthPerString / railUnitLen); // จำนวนท่อนเชิงกายภาพต่อแนว
+  const splicePerLine = barsGeoPerLine > 1 ? barsGeoPerLine - 1 : 0;
+  const totalSplices = splicePerLine * 2 * strings; // คูณ 2 แนวราง x จำนวนสตริง
+
+  // --- อุปกรณ์อื่นๆ ---
   const lFeetPerLine = Math.ceil((railLengthPerString * 1000) / lFeetDist) + 1;
-  const totalLFeet = lFeetPerLine * totalRailLines;
+  const totalLFeet = lFeetPerLine * 2 * strings;
   const midClampPerString = (panels > 0 ? panels - 1 : 0) * 2;
   const totalMidClamp = midClampPerString * strings;
   const endClampPerString = 4;
@@ -43,7 +57,7 @@ export default function App() {
       <div className="bg-white p-4 md:p-6 rounded-xl shadow-lg w-full max-w-7xl border-t-8 border-[#0ea5e9]">
         <div className="flex flex-col md:flex-row justify-between items-center mb-6">
           <h1 className="text-xl md:text-2xl font-bold text-gray-800">
-            UD Solarmax <span className="block md:inline text-xs md:text-sm font-normal text-gray-500">Engineering Calc v6.7 (Direction Fixed)</span>
+            UD Solarmax <span className="block md:inline text-xs md:text-sm font-normal text-gray-500">Engineering Calc v6.8 (Rail Optimized)</span>
           </h1>
           <div className="mt-2 md:mt-0 px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-bold">
              Strings: {strings}
@@ -114,10 +128,6 @@ export default function App() {
                 {mode === 'landscape' ? ' (Grow Right ->)' : ' (Grow Down v)'}
              </div>
 
-             {/* OUTER CONTAINER: ส่วนควบคุมทิศทางสตริง (String Direction)
-                - Landscape: flex-row (เรียงไปทางขวา)
-                - Portrait: flex-col (เรียงลงข้างล่าง) << แก้ไขตรงนี้แยกกันชัดเจน
-             */}
              <div className={`
                 flex gap-6 w-full h-full p-4 items-start
                 ${mode === 'landscape' ? 'flex-row overflow-x-auto' : 'flex-col overflow-y-auto'}
@@ -129,20 +139,14 @@ export default function App() {
                     {/* Label */}
                     <div className="text-[10px] text-blue-300 mb-2 font-bold bg-slate-700 px-2 py-0.5 rounded-full">STR {s+1}</div>
                     
-                    {/* INNER CONTAINER: ส่วนควบคุมแผงใน 1 สตริง (Panel Arrangement)
-                    */}
+                    {/* INNER CONTAINER */}
                     {mode === 'landscape' ? (
-                        // ============================================
-                        // MODE: LANDSCAPE (แผงแนวนอน)
-                        // - แผงเรียงซ้อนกันเป็นตึก (flex-col)
-                        // - สตริงเพิ่มไปทางขวา (Outer=Row)
-                        // ============================================
                         <div className="flex flex-col bg-slate-700/30 p-2 rounded-lg border border-slate-600/50 justify-start gap-px md:gap-1">
                             {[...Array(panels > 0 ? panels : 0)].map((_, i) => (
                               <div
                                 key={i}
                                 style={{
-                                    width: '80px',   // ปรับขนาดได้อิสระ
+                                    width: '80px',
                                     height: '40px',
                                     aspectRatio: '3/2'
                                 }}
@@ -153,20 +157,13 @@ export default function App() {
                               </div>
                             ))}
                         </div>
-
                     ) : (
-
-                        // ============================================
-                        // MODE: PORTRAIT (แผงแนวตั้ง)
-                        // - แผงเรียงต่อกันเป็นแถวยาว (flex-row) << แก้ใหม่ตามสั่ง
-                        // - สตริงเพิ่มลงข้างล่าง (Outer=Col)
-                        // ============================================
                         <div className="flex flex-row bg-slate-700/30 p-2 rounded-lg border border-slate-600/50 justify-start gap-px md:gap-1 max-w-full overflow-x-hidden">
                             {[...Array(panels > 0 ? panels : 0)].map((_, i) => (
                               <div
                                 key={i}
                                 style={{
-                                    width: '40px',   // ปรับขนาดได้อิสระ
+                                    width: '40px',
                                     height: '80px',
                                     aspectRatio: '2/3'
                                 }}
@@ -178,7 +175,6 @@ export default function App() {
                             ))}
                         </div>
                     )}
-                    
                   </div>
                 ))}
              </div>
@@ -194,6 +190,8 @@ export default function App() {
                 <table className="w-full text-xs text-left">
                    <tbody className="divide-y divide-gray-100">
                       <tr><td className="px-3 py-2 text-gray-700">ความยาวสุทธิ/แนว</td><td className="px-3 py-2 text-right font-bold text-blue-600">{railLengthPerString.toFixed(2)} ม.</td></tr>
+                      
+                      {/* แก้ไขการแสดงผลรางให้เป็น Logic ใหม่ */}
                       <tr className="bg-yellow-50">
                         <td className="px-3 py-2 text-yellow-800 font-bold">จำนวนราง ({railUnitLen.toFixed(1)}ม.)</td>
                         <td className="px-3 py-2 text-right font-bold text-red-600 text-sm">{totalBars} เส้น</td>
@@ -202,6 +200,7 @@ export default function App() {
                         <td className="px-3 py-2 text-yellow-800">ตัวต่อราง (Splice)</td>
                         <td className="px-3 py-2 text-right font-bold text-yellow-900">{totalSplices} ตัว</td>
                       </tr>
+                      
                       <tr><td className="px-3 py-2 text-gray-700">L-Feet</td><td className="px-3 py-2 text-right font-bold">{totalLFeet} ตัว</td></tr>
                       <tr><td className="px-3 py-2 text-gray-700">Mid Clamp</td><td className="px-3 py-2 text-right">{totalMidClamp} ตัว</td></tr>
                       <tr><td className="px-3 py-2 text-gray-700">End Clamp</td><td className="px-3 py-2 text-right">{totalEndClamp} ตัว</td></tr>
@@ -210,9 +209,9 @@ export default function App() {
                 </table>
              </div>
              <div className="p-3 bg-blue-50 rounded-lg text-[10px] text-blue-800 border border-blue-100">
-               <strong>สูตรคำนวณ:</strong><br/>
-               ความยาว = (แผง x {panels}) + MidGap + เผื่อปลาย<br/>
-               จำนวนเส้น = ปัดเศษขึ้น (ความยาว / {railUnitLen.toFixed(1)})
+               <strong>สูตรคำนวณรางใหม่:</strong><br/>
+               ความยาวรวม/สตริง = (ความยาวแนว x 2)<br/>
+               จำนวนเส้น = ปัดเศษขึ้น (ความยาวรวม / {railUnitLen.toFixed(1)})
              </div>
           </div>
 

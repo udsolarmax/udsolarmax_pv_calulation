@@ -25,30 +25,41 @@ export default function App() {
   const currentL = panelOrientation === 'vertical' ? panelLength : panelWidth;
 
   useEffect(() => {
+    // 1. คำนวณพื้นฐานของแถว
     const panelsDim = (panelCountPerString * currentW) + ((panelCountPerString - 1) * midClampSpace);
     const rowLenMM = panelsDim + (2 * overhang);
     
-    let rails, splices, lFeet;
+    let finalRailLength, finalRailsNeeded, finalSplices, finalLFeet;
 
     if (panelOrientation === 'vertical') {
-      // --- คำนวณแนวตั้ง (ปกติ) ---
-      rails = Math.ceil((rowLenMM * 2) / railLength);
-      splices = Math.max(0, rails - 2); 
-      lFeet = (Math.ceil(rowLenMM / lFeetSpace) + 1) * 2;
+      // --- ค่ามาตรฐานแนวตั้ง ---
+      finalRailLength = (rowLenMM / 1000).toFixed(2);
+      finalRailsNeeded = Math.ceil((rowLenMM * 2) / railLength);
+      finalSplices = Math.max(0, finalRailsNeeded - 2); 
+      finalLFeet = (Math.ceil(rowLenMM / lFeetSpace) + 1) * 2;
     } else {
-      // --- คำนวณแนวนอน (แก้ไขโดยการหารสองทั้งหมดตามสั่ง) ---
-      rails = Math.ceil((rowLenMM * 2) / railLength) / 2;
-      splices = Math.max(0, (Math.ceil((rowLenMM * 2) / railLength) - 2)) / 2;
-      lFeet = ((Math.ceil(rowLenMM / lFeetSpace) + 1) * 2) / 2;
+      // --- ค่าแนวนอน (ปรับลดหารสองเพื่อให้เท่ากับแนวตั้งตามภาพเปรียบเทียบ) ---
+      // 1. รางรวมต่อชุด: นำค่าจากแนวนอนมาหาร 2
+      finalRailLength = ((rowLenMM / 1000) / 2).toFixed(2);
+      
+      // 2. จำนวนราง: คำนวณปกติแล้วหาร 2
+      const rawRails = Math.ceil((rowLenMM * 2) / railLength);
+      finalRailsNeeded = Math.ceil(rawRails / 2);
+      
+      // 3. ตัวต่อราง (Splice): ให้สอดคล้องกับจำนวนรางที่หารสองแล้ว
+      finalSplices = Math.max(0, finalRailsNeeded - 2);
+      
+      // 4. L-Feet: หาร 2 จากสูตรปกติ
+      finalLFeet = Math.ceil(((Math.ceil(rowLenMM / lFeetSpace) + 1) * 2) / 2);
     }
 
     setResults({
-      totalRailLength: (rowLenMM / 1000).toFixed(2),
-      totalRailsNeeded: Math.ceil(rails) * stringCount,
+      totalRailLength: finalRailLength,
+      totalRailsNeeded: finalRailsNeeded * stringCount,
       midClamps: ((panelCountPerString - 1) * 2) * stringCount,
       endClamps: 4 * stringCount,
-      splices: Math.ceil(splices) * stringCount,
-      lFeetCount: Math.ceil(lFeet) * stringCount,
+      splices: finalSplices * stringCount,
+      lFeetCount: finalLFeet * stringCount,
       panelTotalDim: (panelsDim / 1000).toFixed(2)
     });
   }, [currentW, currentL, panelCountPerString, stringCount, lFeetSpace, railLength, midClampSpace, overhang, panelOrientation]);
@@ -108,7 +119,7 @@ export default function App() {
   return (
     <div style={{ padding: "10px", maxWidth: "1200px", margin: "0 auto", fontFamily: "sans-serif" }}>
       <div style={{ backgroundColor: "white", borderRadius: "16px", boxShadow: "0 10px 25px rgba(0,0,0,0.1)", padding: "20px" }}>
-        <h1 style={{ color: "#1e3a8a", textAlign: "center", marginBottom: "20px", fontSize: "24px" }}>UD Solarmax engineering calc v5.6</h1>
+        <h1 style={{ color: "#1e3a8a", textAlign: "center", marginBottom: "20px", fontSize: "24px" }}>UD Solarmax engineering calc v5.7</h1>
         <div style={{ marginBottom: "20px", display: 'flex', justifyContent: 'center' }}>
           <div style={{ width: '100%', maxWidth: '950px' }}>
             {renderVisualizer()}

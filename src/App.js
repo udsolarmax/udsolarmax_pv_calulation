@@ -1,15 +1,16 @@
 import React, { useState, useEffect } from 'react';
 
 export default function App() {
-  const [panelWidth, setPanelWidth] = useState(1134);
-  const [panelLength, setPanelLength] = useState(2382);
+  // ใช้ string เพื่อให้การพิมพ์แก้ไขค่าทำได้ง่าย (ไม่เด้งเป็น 0)
+  const [panelWidth, setPanelWidth] = useState("1134");
+  const [panelLength, setPanelLength] = useState("2382");
   const [panelOrientation, setPanelOrientation] = useState('horizontal'); 
-  const [panelCountPerString, setPanelCountPerString] = useState(10);
-  const [stringCount, setStringCount] = useState(1);
-  const [lFeetSpace, setLFeetSpace] = useState(1200);
-  const [railLength, setRailLength] = useState(4200);
-  const [midClampSpace, setMidClampSpace] = useState(20);
-  const [overhang, setOverhang] = useState(100);
+  const [panelCountPerString, setPanelCountPerString] = useState("10");
+  const [stringCount, setStringCount] = useState("1");
+  const [lFeetSpace, setLFeetSpace] = useState("1200");
+  const [railLength, setRailLength] = useState("4200");
+  const [midClampSpace, setMidClampSpace] = useState("20");
+  const [overhang, setOverhang] = useState("100");
 
   const [results, setResults] = useState({
     totalRailLength: 0,
@@ -22,62 +23,65 @@ export default function App() {
   });
 
   useEffect(() => {
+    // แปลงค่า Input เป็นตัวเลขสำหรับการคำนวณ (ป้องกัน NaN)
+    const pWidth = Number(panelWidth) || 0;
+    const pLength = Number(panelLength) || 0;
+    const pCount = Number(panelCountPerString) || 0;
+    const sCount = Number(stringCount) || 0;
+    const lSpace = Number(lFeetSpace) || 1200;
+    const rLength = Number(railLength) || 4200;
+    const mSpace = Number(midClampSpace) || 0;
+    const oh = Number(overhang) || 0;
+
     let dimUsed, rawRowLenMM, panelsDim;
 
-    // 1. ระบุค่าที่ใช้คำนวณ (แนวตั้งใช้ Width, แนวนอนใช้ Length)
-    // หมายเหตุ: การเปลี่ยน Panel Length จะมีผลเฉพาะโหมดแนวนอนเท่านั้น
+    // 1. เลือกด้านที่จะใช้คำนวณ
+    // หมายเหตุ: แนวตั้งใช้ "กว้าง", แนวนอนใช้ "ยาว"
     if (panelOrientation === 'vertical') {
-      dimUsed = panelWidth;
+      dimUsed = pWidth;
     } else {
-      dimUsed = panelLength;
+      dimUsed = pLength;
     }
 
     // 2. คำนวณความยาวแถวรวม (Raw Row Length)
-    panelsDim = (panelCountPerString * dimUsed) + ((panelCountPerString - 1) * midClampSpace);
-    rawRowLenMM = panelsDim + (2 * overhang);
+    panelsDim = (pCount * dimUsed) + ((pCount - 1) * mSpace);
+    rawRowLenMM = panelsDim + (2 * oh);
     
     // 3. คำนวณวัสดุ
     let finalRailLength, finalRailsNeeded, finalSplices, finalLFeet;
-    
-    // จำนวนเส้นรางรวมทั้งหมดที่ต้องวาง (ปกติ 1 สตริงมี 2 เส้นราง)
-    const totalLines = 2 * stringCount; 
+    const totalLines = 2 * sCount; // 1 สตริงมี 2 แถวราง
 
     if (panelOrientation === 'vertical') {
-      // --- แนวตั้ง (ปกติ) ---
+      // --- แนวตั้ง ---
       finalRailLength = (rawRowLenMM / 1000).toFixed(2);
       
-      // ใช้สูตร Total Optimization (ความยาวรวม / ความยาวราง) เพื่อให้ได้จำนวนน้อยที่สุด
-      // เช่น 23.64ม. / 4.8ม. = 4.92 -> 5 เส้น (ถูกต้องตามหลักประหยัด)
+      // สูตร Total Optimization: ความยาวรวมที่ต้องใช้ / ความยาวรางมาตรฐาน
+      // ตัวอย่าง: 13.41ม. x 2แถว = 26.82ม.
+      // ราง 4.8ม. -> 26.82 / 4.8 = 5.58 -> ปัดเป็น 6 เส้น (ถูกต้อง)
       const totalLenRequired = rawRowLenMM * totalLines;
-      finalRailsNeeded = Math.ceil(totalLenRequired / railLength);
+      finalRailsNeeded = Math.ceil(totalLenRequired / rLength);
       
-      // L-Feet (คิดรายแถวเหมือนเดิม)
-      finalLFeet = (Math.ceil(rawRowLenMM / lFeetSpace) + 1) * totalLines;
+      finalLFeet = (Math.ceil(rawRowLenMM / lSpace) + 1) * totalLines;
 
     } else {
-      // --- แนวนอน (หาร 2 ตามสูตรพิเศษ) ---
+      // --- แนวนอน (สูตรหาร 2) ---
       finalRailLength = ((rawRowLenMM / 1000) / 2).toFixed(2);
       
-      // จำนวนราง: คิดจากความยาวรวม แล้วหาร 2
       const totalLenRequired = rawRowLenMM * totalLines;
-      const rawRails = Math.ceil(totalLenRequired / railLength);
+      const rawRails = Math.ceil(totalLenRequired / rLength);
       finalRailsNeeded = Math.ceil(rawRails / 2);
 
-      // L-Feet: คิดปกติ แล้วหาร 2
-      const rawLFeet = (Math.ceil(rawRowLenMM / lFeetSpace) + 1) * totalLines;
+      const rawLFeet = (Math.ceil(rawRowLenMM / lSpace) + 1) * totalLines;
       finalLFeet = Math.ceil(rawLFeet / 2);
     }
     
-    // คำนวณ Splice (ตัวต่อราง)
-    // สูตร: จำนวนรางที่สั่ง - จำนวนแถวที่วาง (เชื่อมต่อรางทุกจุดที่ขาด)
-    // เช่น สั่ง 5 เส้น วาง 2 แถว -> จุดต่อคือ 5-2 = 3 จุด
     finalSplices = Math.max(0, finalRailsNeeded - totalLines);
 
     setResults({
       totalRailLength: finalRailLength,
       totalRailsNeeded: finalRailsNeeded,
-      midClamps: ((panelCountPerString - 1) * 2) * stringCount,
-      endClamps: 4 * stringCount,
+      midClamps: ((pCount - 1) * 2) * sCount,
+      endClamps: 4 * sCount,
       splices: finalSplices,
       lFeetCount: finalLFeet,
       panelTotalDim: (panelsDim / 1000).toFixed(2)
@@ -85,19 +89,27 @@ export default function App() {
     
   }, [panelWidth, panelLength, panelCountPerString, stringCount, lFeetSpace, railLength, midClampSpace, overhang, panelOrientation]);
 
+  // ฟังก์ชันวาดรูป (Visualizer)
   const renderVisualizer = () => {
-    const currentW = panelOrientation === 'vertical' ? panelWidth : panelLength;
-    const currentL = panelOrientation === 'vertical' ? panelLength : panelWidth;
+    const pWidth = Number(panelWidth) || 0;
+    const pLength = Number(panelLength) || 0;
+    const pCount = Number(panelCountPerString) || 0;
+    const sCount = Number(stringCount) || 0;
+    const mSpace = Number(midClampSpace) || 0;
+    const oh = Number(overhang) || 0;
+
+    const currentW = panelOrientation === 'vertical' ? pWidth : pLength;
+    const currentL = panelOrientation === 'vertical' ? pLength : pWidth;
     
-    const panelsDimMM = (panelCountPerString * currentW) + ((panelCountPerString - 1) * midClampSpace);
-    const railLenMM = panelsDimMM + (2 * overhang);
+    const panelsDimMM = (pCount * currentW) + ((pCount - 1) * mSpace);
+    const railLenMM = panelsDimMM + (2 * oh);
 
     if (panelOrientation === 'vertical') {
       const vWidth = railLenMM + 800;
-      const vHeight = (currentL * stringCount) + (stringCount * 800) + 400;
+      const vHeight = (currentL * sCount) + (sCount * 800) + 400;
       return (
         <svg viewBox={`-300 -500 ${vWidth} ${vHeight}`} style={{ width: '100%', height: 'auto', background: '#1e293b', borderRadius: '12px' }}>
-          {Array.from({ length: stringCount }).map((_, sIdx) => {
+          {Array.from({ length: sCount }).map((_, sIdx) => {
             const yOff = sIdx * (currentL + 800);
             return (
               <g key={sIdx}>
@@ -105,8 +117,8 @@ export default function App() {
                 <rect x="0" y={yOff + currentL * 0.75} width={railLenMM} height="40" fill="#94a3b8" rx="10" />
                 <line x1="0" y1={yOff - 150} x2={railLenMM} y2={yOff - 150} stroke="#fbbf24" strokeWidth="15" />
                 <text x={railLenMM/2} y={yOff - 220} fill="#fbbf24" fontSize="200" fontWeight="bold" textAnchor="middle">รางรวม: {results.totalRailLength} ม.</text>
-                {Array.from({ length: panelCountPerString }).map((_, pIdx) => (
-                  <rect key={pIdx} x={overhang + (pIdx * (currentW + midClampSpace))} y={yOff} width={currentW} height={currentL} fill="#334155" stroke="#475569" strokeWidth="10" rx="5" />
+                {Array.from({ length: pCount }).map((_, pIdx) => (
+                  <rect key={pIdx} x={oh + (pIdx * (currentW + mSpace))} y={yOff} width={currentW} height={currentL} fill="#334155" stroke="#475569" strokeWidth="10" rx="5" />
                 ))}
               </g>
             );
@@ -114,22 +126,22 @@ export default function App() {
         </svg>
       );
     } else {
-      const railLenMM_Landscape = (panelCountPerString * panelLength) + ((panelCountPerString - 1) * midClampSpace) + (2 * overhang);
-      const vWidth = (panelWidth * stringCount) + (stringCount * 800) + 400;
+      const railLenMM_Landscape = (pCount * pLength) + ((pCount - 1) * mSpace) + (2 * oh);
+      const vWidth = (pWidth * sCount) + (sCount * 800) + 400;
       const vHeight = railLenMM_Landscape + 800;
 
       return (
         <svg viewBox={`-600 -400 ${vWidth} ${vHeight}`} style={{ width: '100%', maxHeight: '80vh', height: 'auto', background: '#1e293b', borderRadius: '12px' }}>
-          {Array.from({ length: stringCount }).map((_, sIdx) => {
-            const xOff = sIdx * (panelWidth + 800);
+          {Array.from({ length: sCount }).map((_, sIdx) => {
+            const xOff = sIdx * (pWidth + 800);
             return (
               <g key={sIdx}>
-                <rect x={xOff + panelWidth * 0.25} y="0" width="45" height={railLenMM_Landscape} fill="#94a3b8" rx="10" />
-                <rect x={xOff + panelWidth * 0.75} y="0" width="45" height={railLenMM_Landscape} fill="#94a3b8" rx="10" />
+                <rect x={xOff + pWidth * 0.25} y="0" width="45" height={railLenMM_Landscape} fill="#94a3b8" rx="10" />
+                <rect x={xOff + pWidth * 0.75} y="0" width="45" height={railLenMM_Landscape} fill="#94a3b8" rx="10" />
                 <line x1={xOff - 250} y1="0" x2={xOff - 250} y2={railLenMM_Landscape} stroke="#fbbf24" strokeWidth="20" />
                 <text x={xOff - 380} y={railLenMM_Landscape/2} fill="#fbbf24" fontSize="220" fontWeight="bold" textAnchor="middle" transform={`rotate(-90, ${xOff - 380}, ${railLenMM_Landscape/2})`}>รางรวม: {results.totalRailLength} ม.</text>
-                {Array.from({ length: panelCountPerString }).map((_, pIdx) => (
-                  <rect key={pIdx} x={xOff} y={overhang + (pIdx * (panelLength + midClampSpace))} width={panelWidth} height={panelLength} fill="#00ffff" stroke="#fff" strokeWidth="12" rx="5" />
+                {Array.from({ length: pCount }).map((_, pIdx) => (
+                  <rect key={pIdx} x={xOff} y={oh + (pIdx * (pLength + mSpace))} width={pWidth} height={pLength} fill="#00ffff" stroke="#fff" strokeWidth="12" rx="5" />
                 ))}
               </g>
             );
@@ -142,7 +154,7 @@ export default function App() {
   return (
     <div style={{ padding: "10px", maxWidth: "1200px", margin: "0 auto", fontFamily: "sans-serif" }}>
       <div style={{ backgroundColor: "white", borderRadius: "16px", boxShadow: "0 10px 25px rgba(0,0,0,0.1)", padding: "20px" }}>
-        <h1 style={{ color: "#1e3a8a", textAlign: "center", marginBottom: "20px", fontSize: "24px" }}>UD Solarmax engineering calc v6.2</h1>
+        <h1 style={{ color: "#1e3a8a", textAlign: "center", marginBottom: "20px", fontSize: "24px" }}>UD Solarmax engineering calc v6.3</h1>
         
         <div style={{ marginBottom: "20px", display: 'flex', justifyContent: 'center' }}>
           <div style={{ width: '100%', maxWidth: '950px' }}>
@@ -178,7 +190,7 @@ export default function App() {
             <ResultRow label="Middle Clamp" value={`${results.midClamps} ตัว`} />
             <ResultRow label="End Clamp" value={`${results.endClamps} ตัว`} />
             <ResultRow label="Grounding Plate" value={`${results.midClamps} ตัว`} />
-            <ResultRow label="Grounding Lug" value={`${2 * stringCount} ตัว`} />
+            <ResultRow label="Grounding Lug" value={`${2 * Number(stringCount)} ตัว`} />
             <button onClick={() => {
               const text = `☀️ UD Solarmax: รวม ${stringCount} แถว, ราง ${results.totalRailLength}ม. (${results.totalRailsNeeded}เส้น), L-Feet ${results.lFeetCount}ตัว`;
               navigator.clipboard.writeText(text);
@@ -191,10 +203,16 @@ export default function App() {
   );
 }
 
+// ปรับปรุง InputBlock ให้รองรับการพิมพ์ได้ดีขึ้น
 const InputBlock = ({ label, value, onChange }) => (
   <div>
     <label style={{ display: "block", fontSize: "11px", color: "#64748b", marginBottom: "3px" }}>{label}</label>
-    <input type="number" value={value} onChange={e => onChange(Number(e.target.value))} style={{ width: "100%", padding: "8px", border: "1px solid #cbd5e1", borderRadius: "6px" }} />
+    <input 
+      type="number" 
+      value={value} 
+      onChange={e => onChange(e.target.value)} 
+      style={{ width: "100%", padding: "8px", border: "1px solid #cbd5e1", borderRadius: "6px" }} 
+    />
   </div>
 );
 

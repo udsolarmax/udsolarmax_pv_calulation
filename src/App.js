@@ -11,25 +11,21 @@ export default function App() {
   const [panelLength, setPanelLength] = useState(2.382);
 
   // --- 2. Advanced Settings ---
-  const [railUnitLen, setRailUnitLen] = useState(4.80); // ปรับ default ตามรูปของคุณ (Image 10)
+  const [railUnitLen, setRailUnitLen] = useState(4.80);
   const [midClamp, setMidClamp] = useState(20);    // มม.
-  // REMOVED: const [endClamp, setEndClamp] = useState(40);  <-- ลบการตั้งค่า End Clamp ออก
-  const [overhang, setOverhang] = useState(150);   // มม. (ระยะเผื่อปลายราง) - ปรับ default ตามรูป
+  const [overhang, setOverhang] = useState(150);   // มม. (ระยะเผื่อปลายราง)
   const [lFeetDist, setLFeetDist] = useState(1200); // มม.
 
   // --- 3. สูตรคำนวณ (Calculation Logic) ---
-
   // A. ความยาวเชิงเรขาคณิต (Total Geometry Length)
-  // สูตรใหม่: (PanelZone) + (MidGaps) + (Overhangs)  <-- เอา EndClamps ออกจากสูตร
   const totalPanelWidth = panels * panelWidth;
   const totalMidGaps = (panels > 0 ? panels - 1 : 0) * (midClamp / 1000);
-  // REMOVED: const totalEndClamps = 2 * (endClamp / 1000);
   const totalOverhangs = 2 * (overhang / 1000);
 
   const railLengthPerString = totalPanelWidth + totalMidGaps + totalOverhangs;
 
   // B. คำนวณวัสดุ (BOM)
-  const totalRailLines = 2 * strings; // จำนวนแนวรางทั้งหมด
+  const totalRailLines = 2 * strings;
 
   // B1. จำนวนรางที่ต้องสั่ง (เส้น)
   const barsPerLine = Math.ceil(railLengthPerString / railUnitLen);
@@ -46,17 +42,17 @@ export default function App() {
   const midClampPerString = (panels > 0 ? panels - 1 : 0) * 2;
   const totalMidClamp = midClampPerString * strings;
 
-  const endClampPerString = 4; // จำนวนยังคง 4 ตัวต่อสตริง
+  const endClampPerString = 4;
   const totalEndClamp = endClampPerString * strings;
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center p-4 font-sans text-gray-800">
 
       {/* Header */}
-      <div className="bg-white p-4 md:p-6 rounded-xl shadow-lg w-full max-w-6xl border-t-8 border-[#0ea5e9]">
+      <div className="bg-white p-4 md:p-6 rounded-xl shadow-lg w-full max-w-7xl border-t-8 border-[#0ea5e9]">
         <div className="flex flex-col md:flex-row justify-between items-center mb-6">
           <h1 className="text-xl md:text-2xl font-bold text-gray-800">
-            UD Solarmax <span className="block md:inline text-xs md:text-sm font-normal text-gray-500">Engineering Calc v6.4</span>
+            UD Solarmax <span className="block md:inline text-xs md:text-sm font-normal text-gray-500">Engineering Calc v6.5</span>
           </h1>
           <div className="mt-2 md:mt-0 px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-bold">
              Strings: {strings}
@@ -105,11 +101,10 @@ export default function App() {
                </div>
             </div>
 
-             {/* Inputs Group 3: Distances (Updated - End Clamp Removed) */}
+             {/* Inputs Group 3: Distances */}
             <div className="bg-gray-50 p-3 rounded-lg border border-gray-200 space-y-2">
               <h3 className="text-[10px] font-bold text-gray-500 uppercase border-b pb-1 mb-1">ตั้งค่าระยะ (มม.)</h3>
               <div className="flex justify-between items-center"><label className="text-xs text-gray-600">Mid Clamp</label><input type="number" value={midClamp} onChange={(e) => setMidClamp(Number(e.target.value))} className="w-14 border rounded px-1 py-1 text-right text-xs" /></div>
-              {/* REMOVED END CLAMP INPUT */}
               <div className="flex justify-between items-center bg-green-50 px-1 -mx-1 rounded"><label className="text-xs text-green-700 font-bold">เผื่อปลายราง</label><input type="number" value={overhang} onChange={(e) => setOverhang(Number(e.target.value))} className="w-14 border border-green-300 rounded px-1 py-1 text-right text-xs font-bold text-green-700" /></div>
               <div className="flex justify-between items-center"><label className="text-xs text-gray-600">ระยะ L-Feet</label><input type="number" value={lFeetDist} onChange={(e) => setLFeetDist(Number(e.target.value))} className="w-14 border rounded px-1 py-1 text-right text-xs" /></div>
             </div>
@@ -121,22 +116,27 @@ export default function App() {
           </div>
 
           {/* --- ตรงกลาง: Visualization (6/12) --- */}
-          <div className="lg:col-span-6 bg-slate-800 rounded-xl p-4 flex flex-col relative min-h-[400px]">
-             <div className="text-xs text-white opacity-50 mb-4 text-center">Preview: {panels} Panels x {strings} Strings</div>
+          {/* แก้ไข Layout หลัก: ให้เป็น Flex-Row เพื่อเรียงสตริงไปทางขวา */}
+          <div className="lg:col-span-6 bg-slate-800 rounded-xl p-4 flex flex-col relative min-h-[500px]">
+             <div className="text-xs text-white opacity-50 mb-4 text-center">Preview: {panels} Panels x {strings} Strings (Side-by-Side)</div>
 
-             <div className="flex flex-col gap-6 w-full h-full overflow-y-auto pr-2">
+             {/* Container ของสตริงทั้งหมด: ใช้ flex-row + overflow-x-auto เพื่อเลื่อนไปทางขวา */}
+             <div className="flex flex-row gap-6 w-full h-full overflow-x-auto p-4 items-start">
                 {[...Array(strings > 0 ? strings : 1)].map((_, s) => (
-                  <div key={s} className="w-full">
-                    <div className="text-[10px] text-blue-300 mb-1 ml-1 font-bold">STRING {s+1}</div>
-                    {/* UPDATE: เปลี่ยน flex-direction ตามโหมด */}
-                    <div className={`flex ${mode === 'landscape' ? 'flex-col items-center' : 'flex-row'} w-full bg-slate-700/30 p-2 rounded-lg border border-slate-600/50 justify-start gap-px md:gap-1`}>
+                  <div key={s} className="shrink-0 flex flex-col items-center">
+                    <div className="text-[10px] text-blue-300 mb-2 font-bold bg-slate-700 px-2 py-0.5 rounded-full">STR {s+1}</div>
+                    
+                    {/* Container ของแผงใน 1 สตริง */}
+                    {/* Logic: ถ้า Landscape = เรียงลง (col), ถ้า Portrait = เรียงข้าง (row) */}
+                    <div className={`flex ${mode === 'landscape' ? 'flex-col' : 'flex-row'} bg-slate-700/30 p-2 rounded-lg border border-slate-600/50 justify-start gap-px md:gap-1`}>
                         {[...Array(panels > 0 ? panels : 0)].map((_, i) => (
                           <div
                             key={i}
                             style={{
-                                // UPDATE: ปรับขนาดและการจัดวางตามโหมด
-                                width: mode === 'landscape' ? '70%' : `${100 / panels}%`,
-                                maxWidth: '100px',
+                                // ขนาดแผง (Fix size เพื่อความสวยงามในแบบ Column)
+                                width: mode === 'landscape' ? '80px' : '40px',
+                                height: mode === 'landscape' ? '50px' : '80px',
+                                // Aspect Ratio เผื่อไว้
                                 aspectRatio: mode === 'landscape' ? '3/2' : '2/3'
                             }}
                             className="bg-[#0ea5e9] border border-white/20 shadow-sm relative shrink-0 transition-all hover:bg-blue-400"
@@ -162,7 +162,6 @@ export default function App() {
                    <tbody className="divide-y divide-gray-100">
                       <tr><td className="px-3 py-2 text-gray-700">ความยาวสุทธิ/แนว</td><td className="px-3 py-2 text-right font-bold text-blue-600">{railLengthPerString.toFixed(2)} ม.</td></tr>
 
-                      {/* ส่วนคำนวณราง */}
                       <tr className="bg-yellow-50">
                         <td className="px-3 py-2 text-yellow-800 font-bold">จำนวนราง ({railUnitLen.toFixed(1)}ม.)</td>
                         <td className="px-3 py-2 text-right font-bold text-red-600 text-sm">{totalBars} เส้น</td>
@@ -174,7 +173,7 @@ export default function App() {
 
                       <tr><td className="px-3 py-2 text-gray-700">L-Feet</td><td className="px-3 py-2 text-right font-bold">{totalLFeet} ตัว</td></tr>
                       <tr><td className="px-3 py-2 text-gray-700">Mid Clamp</td><td className="px-3 py-2 text-right">{totalMidClamp} ตัว</td></tr>
-                      <tr><td className="px-3 py-2 text-gray-700">End Clamp</td><td className="px-3 py-2 text-right">{totalEndClamp} ตัว</td></tr> {/* ยังคงแสดงจำนวน End Clamp */}
+                      <tr><td className="px-3 py-2 text-gray-700">End Clamp</td><td className="px-3 py-2 text-right">{totalEndClamp} ตัว</td></tr>
                       <tr><td className="px-3 py-2 text-gray-700">Grounding Plate</td><td className="px-3 py-2 text-right">{totalMidClamp} แผ่น</td></tr>
                    </tbody>
                 </table>
@@ -182,7 +181,6 @@ export default function App() {
 
              <div className="p-3 bg-blue-50 rounded-lg text-[10px] text-blue-800 border border-blue-100">
                <strong>สูตรคำนวณ:</strong><br/>
-               {/* UPDATE: อัปเดตข้อความสูตร */}
                ความยาว = (แผง x {panels}) + MidGap + เผื่อปลาย<br/>
                จำนวนเส้น = ปัดเศษขึ้น (ความยาว / {railUnitLen.toFixed(1)})
              </div>

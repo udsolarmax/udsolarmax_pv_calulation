@@ -21,13 +21,13 @@ export default function App() {
     panelTotalDim: 0
   });
 
-  // บังคับการคำนวณให้ใช้ฐานข้อมูลเดียวกันเพื่อให้ค่าออกมาเท่ากัน
+  // แก้ไขสมการให้คำนวณใหม่ทุกครั้งที่มีการเปลี่ยนค่า Input ใดๆ
   useEffect(() => {
-    // ใช้ panelWidth (1134) เป็นฐานเสมอสำหรับการคำนวณวัสดุเพื่อให้ได้ 11.72 ม.
+    // ใช้ panelWidth เป็นฐานหลักตามที่คุณต้องการเพื่อให้ได้ 11.72 ม. (ที่ 1134mm)
+    // แต่ค่าจะเปลี่ยนไปทันทีหากคุณแก้ไขตัวเลขในช่อง Input
     const baseDim = (panelCountPerString * panelWidth) + ((panelCountPerString - 1) * midClampSpace);
     const baseRowLenMM = baseDim + (2 * overhang);
     
-    // คำนวณค่ามาตรฐาน (ให้ผลลัพธ์ 11.72 ม.)
     const finalRailLength = (baseRowLenMM / 1000).toFixed(2);
     const finalRailsNeeded = Math.ceil((baseRowLenMM * 2) / railLength);
     const finalSplices = Math.max(0, finalRailsNeeded - 2); 
@@ -42,10 +42,11 @@ export default function App() {
       lFeetCount: finalLFeet * stringCount,
       panelTotalDim: (baseDim / 1000).toFixed(2)
     });
-  }, [panelWidth, panelCountPerString, stringCount, lFeetSpace, railLength, midClampSpace, overhang]);
+    
+    // เพิ่ม panelLength และค่าอื่นๆ ใน Dependency Array ให้ครบถ้วน
+  }, [panelWidth, panelLength, panelCountPerString, stringCount, lFeetSpace, railLength, midClampSpace, overhang, panelOrientation]);
 
   const renderVisualizer = () => {
-    // ส่วนการแสดงภาพ (Visualizer) ยังคงแยกทิศทางตามเดิมเพื่อให้ภาพถูกต้อง
     const currentW = panelOrientation === 'vertical' ? panelWidth : panelLength;
     const currentL = panelOrientation === 'vertical' ? panelLength : panelWidth;
     const panelsDimMM = (panelCountPerString * currentW) + ((panelCountPerString - 1) * midClampSpace);
@@ -73,8 +74,7 @@ export default function App() {
         </svg>
       );
     } else {
-      const totalPanelH = (panelCountPerString * currentL) + ((panelCountPerString - 1) * midClampSpace);
-      const railLenMM_Landscape = totalPanelH + (2 * overhang);
+      const railLenMM_Landscape = (panelCountPerString * currentL) + ((panelCountPerString - 1) * midClampSpace) + (2 * overhang);
       const vWidth = (currentW * stringCount) + (stringCount * 800) + 400;
       const vHeight = railLenMM_Landscape + 800;
 
@@ -102,7 +102,7 @@ export default function App() {
   return (
     <div style={{ padding: "10px", maxWidth: "1200px", margin: "0 auto", fontFamily: "sans-serif" }}>
       <div style={{ backgroundColor: "white", borderRadius: "16px", boxShadow: "0 10px 25px rgba(0,0,0,0.1)", padding: "20px" }}>
-        <h1 style={{ color: "#1e3a8a", textAlign: "center", marginBottom: "20px", fontSize: "24px" }}>UD Solarmax engineering calc v5.8</h1>
+        <h1 style={{ color: "#1e3a8a", textAlign: "center", marginBottom: "20px", fontSize: "24px" }}>UD Solarmax engineering calc v5.9</h1>
         <div style={{ marginBottom: "20px", display: 'flex', justifyContent: 'center' }}>
           <div style={{ width: '100%', maxWidth: '950px' }}>
             {renderVisualizer()}

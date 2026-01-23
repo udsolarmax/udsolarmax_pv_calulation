@@ -43,7 +43,7 @@ export default function App() {
       <div className="bg-white p-4 md:p-6 rounded-xl shadow-lg w-full max-w-7xl border-t-8 border-[#0ea5e9]">
         <div className="flex flex-col md:flex-row justify-between items-center mb-6">
           <h1 className="text-xl md:text-2xl font-bold text-gray-800">
-            UD Solarmax <span className="block md:inline text-xs md:text-sm font-normal text-gray-500">Engineering Calc v6.6 (Separated View)</span>
+            UD Solarmax <span className="block md:inline text-xs md:text-sm font-normal text-gray-500">Engineering Calc v6.7 (Direction Fixed)</span>
           </h1>
           <div className="mt-2 md:mt-0 px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-bold">
              Strings: {strings}
@@ -107,31 +107,43 @@ export default function App() {
 
           {/* --- ตรงกลาง: Visualization (6/12) --- */}
           <div className="lg:col-span-6 bg-slate-800 rounded-xl p-4 flex flex-col relative min-h-[500px]">
-             <div className="text-xs text-white opacity-50 mb-4 text-center">Preview: {panels} Panels x {strings} Strings (Separated Logic)</div>
+             
+             {/* Dynamic Title */}
+             <div className="text-xs text-white opacity-50 mb-4 text-center">
+                Preview: {panels} Panels x {strings} Strings 
+                {mode === 'landscape' ? ' (Grow Right ->)' : ' (Grow Down v)'}
+             </div>
 
-             {/* Container หลัก: เรียงสตริงไปทางขวาเสมอ */}
-             <div className="flex flex-row gap-6 w-full h-full overflow-x-auto p-4 items-start">
+             {/* OUTER CONTAINER: ส่วนควบคุมทิศทางสตริง (String Direction)
+                - Landscape: flex-row (เรียงไปทางขวา)
+                - Portrait: flex-col (เรียงลงข้างล่าง) << แก้ไขตรงนี้แยกกันชัดเจน
+             */}
+             <div className={`
+                flex gap-6 w-full h-full p-4 items-start
+                ${mode === 'landscape' ? 'flex-row overflow-x-auto' : 'flex-col overflow-y-auto'}
+             `}>
                 
                 {[...Array(strings > 0 ? strings : 1)].map((_, s) => (
                   <div key={s} className="shrink-0 flex flex-col items-center">
+                    
+                    {/* Label */}
                     <div className="text-[10px] text-blue-300 mb-2 font-bold bg-slate-700 px-2 py-0.5 rounded-full">STR {s+1}</div>
                     
-                    {/* ======================================================= */}
-                    {/* ส่วนแยกคำสั่งการแสดงผล (Separated Rendering Logic)       */}
-                    {/* ======================================================= */}
-                    
+                    {/* INNER CONTAINER: ส่วนควบคุมแผงใน 1 สตริง (Panel Arrangement)
+                    */}
                     {mode === 'landscape' ? (
-                        // ---------------------------------------------
-                        // 1. โซนสำหรับ "แผงแนวนอน" (Landscape) เท่านั้น
-                        // ---------------------------------------------
+                        // ============================================
+                        // MODE: LANDSCAPE (แผงแนวนอน)
+                        // - แผงเรียงซ้อนกันเป็นตึก (flex-col)
+                        // - สตริงเพิ่มไปทางขวา (Outer=Row)
+                        // ============================================
                         <div className="flex flex-col bg-slate-700/30 p-2 rounded-lg border border-slate-600/50 justify-start gap-px md:gap-1">
                             {[...Array(panels > 0 ? panels : 0)].map((_, i) => (
                               <div
                                 key={i}
                                 style={{
-                                    // *** จุดแก้ไขขนาด แผงแนวนอน (Landscape Size) ***
-                                    width: '80px',   // แก้ตรงนี้ได้เลย ไม่กระทบแนวตั้ง
-                                    height: '40px',  // ค่านี้ที่คุณแจ้งว่าโอเค (50->40)
+                                    width: '80px',   // ปรับขนาดได้อิสระ
+                                    height: '40px',
                                     aspectRatio: '3/2'
                                 }}
                                 className="bg-[#0ea5e9] border border-white/20 shadow-sm relative shrink-0 transition-all hover:bg-blue-400"
@@ -144,17 +156,18 @@ export default function App() {
 
                     ) : (
 
-                        // ---------------------------------------------
-                        // 2. โซนสำหรับ "แผงแนวตั้ง" (Portrait) เท่านั้น
-                        // ---------------------------------------------
-                        <div className="flex flex-row bg-slate-700/30 p-2 rounded-lg border border-slate-600/50 justify-start gap-px md:gap-1">
+                        // ============================================
+                        // MODE: PORTRAIT (แผงแนวตั้ง)
+                        // - แผงเรียงต่อกันเป็นแถวยาว (flex-row) << แก้ใหม่ตามสั่ง
+                        // - สตริงเพิ่มลงข้างล่าง (Outer=Col)
+                        // ============================================
+                        <div className="flex flex-row bg-slate-700/30 p-2 rounded-lg border border-slate-600/50 justify-start gap-px md:gap-1 max-w-full overflow-x-hidden">
                             {[...Array(panels > 0 ? panels : 0)].map((_, i) => (
                               <div
                                 key={i}
                                 style={{
-                                    // *** จุดแก้ไขขนาด แผงแนวตั้ง (Portrait Size) ***
-                                    width: '40px',   // แก้ตรงนี้ได้เลย ไม่กระทบแนวนอน
-                                    height: '80px',  // กลับมาใช้ค่าเดิมที่เคยสวยงาม
+                                    width: '40px',   // ปรับขนาดได้อิสระ
+                                    height: '80px',
                                     aspectRatio: '2/3'
                                 }}
                                 className="bg-[#0ea5e9] border border-white/20 shadow-sm relative shrink-0 transition-all hover:bg-blue-400"

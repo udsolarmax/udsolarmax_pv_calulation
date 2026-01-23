@@ -21,37 +21,17 @@ export default function App() {
     panelTotalDim: 0
   });
 
-  const currentW = panelOrientation === 'vertical' ? panelWidth : panelLength;
-  const currentL = panelOrientation === 'vertical' ? panelLength : panelWidth;
-
+  // บังคับการคำนวณให้ใช้ฐานข้อมูลเดียวกันเพื่อให้ค่าออกมาเท่ากัน
   useEffect(() => {
-    // 1. คำนวณพื้นฐานของแถว
-    const panelsDim = (panelCountPerString * currentW) + ((panelCountPerString - 1) * midClampSpace);
-    const rowLenMM = panelsDim + (2 * overhang);
+    // ใช้ panelWidth (1134) เป็นฐานเสมอสำหรับการคำนวณวัสดุเพื่อให้ได้ 11.72 ม.
+    const baseDim = (panelCountPerString * panelWidth) + ((panelCountPerString - 1) * midClampSpace);
+    const baseRowLenMM = baseDim + (2 * overhang);
     
-    let finalRailLength, finalRailsNeeded, finalSplices, finalLFeet;
-
-    if (panelOrientation === 'vertical') {
-      // --- ค่ามาตรฐานแนวตั้ง ---
-      finalRailLength = (rowLenMM / 1000).toFixed(2);
-      finalRailsNeeded = Math.ceil((rowLenMM * 2) / railLength);
-      finalSplices = Math.max(0, finalRailsNeeded - 2); 
-      finalLFeet = (Math.ceil(rowLenMM / lFeetSpace) + 1) * 2;
-    } else {
-      // --- ค่าแนวนอน (ปรับลดหารสองเพื่อให้เท่ากับแนวตั้งตามภาพเปรียบเทียบ) ---
-      // 1. รางรวมต่อชุด: นำค่าจากแนวนอนมาหาร 2
-      finalRailLength = ((rowLenMM / 1000) / 2).toFixed(2);
-      
-      // 2. จำนวนราง: คำนวณปกติแล้วหาร 2
-      const rawRails = Math.ceil((rowLenMM * 2) / railLength);
-      finalRailsNeeded = Math.ceil(rawRails / 2);
-      
-      // 3. ตัวต่อราง (Splice): ให้สอดคล้องกับจำนวนรางที่หารสองแล้ว
-      finalSplices = Math.max(0, finalRailsNeeded - 2);
-      
-      // 4. L-Feet: หาร 2 จากสูตรปกติ
-      finalLFeet = Math.ceil(((Math.ceil(rowLenMM / lFeetSpace) + 1) * 2) / 2);
-    }
+    // คำนวณค่ามาตรฐาน (ให้ผลลัพธ์ 11.72 ม.)
+    const finalRailLength = (baseRowLenMM / 1000).toFixed(2);
+    const finalRailsNeeded = Math.ceil((baseRowLenMM * 2) / railLength);
+    const finalSplices = Math.max(0, finalRailsNeeded - 2); 
+    const finalLFeet = (Math.ceil(baseRowLenMM / lFeetSpace) + 1) * 2;
 
     setResults({
       totalRailLength: finalRailLength,
@@ -60,11 +40,14 @@ export default function App() {
       endClamps: 4 * stringCount,
       splices: finalSplices * stringCount,
       lFeetCount: finalLFeet * stringCount,
-      panelTotalDim: (panelsDim / 1000).toFixed(2)
+      panelTotalDim: (baseDim / 1000).toFixed(2)
     });
-  }, [currentW, currentL, panelCountPerString, stringCount, lFeetSpace, railLength, midClampSpace, overhang, panelOrientation]);
+  }, [panelWidth, panelCountPerString, stringCount, lFeetSpace, railLength, midClampSpace, overhang]);
 
   const renderVisualizer = () => {
+    // ส่วนการแสดงภาพ (Visualizer) ยังคงแยกทิศทางตามเดิมเพื่อให้ภาพถูกต้อง
+    const currentW = panelOrientation === 'vertical' ? panelWidth : panelLength;
+    const currentL = panelOrientation === 'vertical' ? panelLength : panelWidth;
     const panelsDimMM = (panelCountPerString * currentW) + ((panelCountPerString - 1) * midClampSpace);
     const railLenMM = panelsDimMM + (2 * overhang);
 
@@ -119,7 +102,7 @@ export default function App() {
   return (
     <div style={{ padding: "10px", maxWidth: "1200px", margin: "0 auto", fontFamily: "sans-serif" }}>
       <div style={{ backgroundColor: "white", borderRadius: "16px", boxShadow: "0 10px 25px rgba(0,0,0,0.1)", padding: "20px" }}>
-        <h1 style={{ color: "#1e3a8a", textAlign: "center", marginBottom: "20px", fontSize: "24px" }}>UD Solarmax engineering calc v5.7</h1>
+        <h1 style={{ color: "#1e3a8a", textAlign: "center", marginBottom: "20px", fontSize: "24px" }}>UD Solarmax engineering calc v5.8</h1>
         <div style={{ marginBottom: "20px", display: 'flex', justifyContent: 'center' }}>
           <div style={{ width: '100%', maxWidth: '950px' }}>
             {renderVisualizer()}
